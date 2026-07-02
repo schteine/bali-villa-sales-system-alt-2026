@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Market Comparison — Bali / Thailand / Vietnam / UAE</title>
+  <title>Market Comparison — Bali / Dubai / Phuket / Batumi</title>
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
@@ -19,15 +19,20 @@
     </nav>
   </header>
 
-  <main class="wrap">
-    <section class="hero">
+  <main class="wrap marketsWrap">
+    <section class="hero marketHero">
       <div>
-        <h1>Бали vs альтернативные рынки</h1>
-        <p>Заготовка для разговора с клиентом, который сравнивает Бали с Таиландом, Вьетнамом и ОАЭ. Данные в CSV — шаблон, перед клиентским использованием обновить.</p>
+        <div class="eyebrow">Market comparison</div>
+        <h1>Бали vs Дубай vs Пхукет vs Батуми</h1>
+        <p>Визуальная страница для разговора с клиентом, который выбирает страну для инвестиций. Данные взяты из твоего market snapshot и используются как рабочая база для презентации.</p>
       </div>
-      <button class="primary" onclick="window.print()">Скачать PDF / Печать</button>
+      <div class="heroActions">
+        <button class="ghost" onclick="document.getElementById('marketMatrix').scrollIntoView({behavior:'smooth'})">Сравнить таблицей</button>
+        <button class="primary" onclick="window.print()">Скачать PDF / Печать</button>
+      </div>
     </section>
-    <section id="marketApp" class="panel"></section>
+
+    <section id="marketApp"></section>
   </main>
 
   <script src="assets/js/data.js"></script>

@@ -63,3 +63,16 @@ https://yourdomain.com/?ids=OA-01,UE-01,SF-01
 - визуальная финмодель: KPI, bars, cashflow chart, payback chart, expense breakdown, sensitivity heatmap.
 
 По умолчанию сайт показывает только `Available` и `Reserved`. Проданные, архивные и черновые объекты скрыты, но доступны через фильтр `Архив / Sold / Draft` или `Все статусы`.
+
+## v4 Market comparison
+
+`markets.html` now uses `data/market_compare_snapshot.csv` and renders a visual comparison of Bali, Dubai, Phuket and Batumi based on the provided market snapshot.
+
+The page includes:
+- quick verdict cards;
+- market cards by country;
+- yield and entry budget charts;
+- sales usage notes;
+- detailed comparison matrix.
+
+Before sending to clients, refresh tax/visa/legal assumptions for the exact year and property type.
