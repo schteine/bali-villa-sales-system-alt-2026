@@ -1,0 +1,5 @@
+Market,EntryTicketUSD,TypicalNetROI,LegalComplexity,Liquidity,ManagementComplexity,GrowthPotential,RiskLevel,BestFor,Notes,SourceStatus
+Bali,150000,0.08,Medium,Medium,Medium,High,Medium,Lifestyle + rental yield,Use internal updated market assumptions before client use,Placeholder
+Thailand,180000,0.06,Medium,High,Low,Medium,Low,Lifestyle + liquidity,Update with current foreign ownership rules and market data,Placeholder
+Vietnam,120000,0.055,High,Medium,Medium,Medium,Medium,Growth exposure,Update legal structure and foreign quota assumptions,Placeholder
+UAE,250000,0.055,Low,High,Low,Medium,Low,Liquidity + stability,Update by emirate and property segment,Placeholder

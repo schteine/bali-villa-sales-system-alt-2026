@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bali Villa Finance Model</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" onclick="location.href='index.html'">
+      <b>Bali Villa Catalog</b>
+      <span>finance model</span>
+    </div>
+    <nav class="nav">
+      <a href="index.html">Каталог</a>
+      <a href="calculator.html">Финмодель</a>
+      <a href="markets.html">Рынки</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <div>
+        <h1>Финмодель объекта</h1>
+        <p>Считай Developer / Model / Conservative ROI, cash-on-cash, break-even ADR и break-even occupancy.</p>
+      </div>
+      <button class="primary" onclick="window.print()">Скачать PDF / Печать</button>
+    </section>
+
+    <section class="modelLayout">
+      <form id="financeForm" class="panel inputPanel">
+        <h2>Входные данные</h2>
+        <div class="formGrid">
+          <label>Цена объекта, $
+            <input name="price" type="number" value="250000" min="0" step="1000" />
+          </label>
+          <label>Депозит / первый взнос, $
+            <input name="deposit" type="number" value="75000" min="0" step="1000" />
+          </label>
+          <label>Налоги + нотариус, %
+            <input name="taxes" type="number" value="3" min="0" step="0.1" />
+          </label>
+          <label>Furnishing / setup, $
+            <input name="furnishing" type="number" value="15000" min="0" step="1000" />
+          </label>
+          <label>Резерв, $
+            <input name="reserve" type="number" value="10000" min="0" step="1000" />
+          </label>
+          <label>ADR base, $
+            <input name="adr" type="number" value="250" min="0" step="5" />
+          </label>
+          <label>Occupancy base, %
+            <input name="occupancy" type="number" value="75" min="0" max="100" step="1" />
+          </label>
+          <label>Расходы от revenue, %
+            <input name="expenses" type="number" value="45" min="0" max="100" step="1" />
+          </label>
+          <label>Haircut conservative, %
+            <input name="haircut" type="number" value="20" min="0" max="90" step="1" />
+          </label>
+          <label>Leasehold осталось, лет
+            <input name="leaseLeft" type="number" value="30" min="0" step="1" />
+          </label>
+          <label>Срок владения, лет
+            <input name="holdYears" type="number" value="5" min="1" step="1" />
+          </label>
+          <label>Рост цены / год, %
+            <input name="growth" type="number" value="3" min="-20" step="0.5" />
+          </label>
+        </div>
+      </form>
+
+      <section class="panel outputPanel">
+        <h2>Выходные показатели</h2>
+        <div id="kpis" class="kpiGrid"></div>
+        <div id="mainInsight" class="insightBox"></div>
+        <div class="chartGrid">
+          <div class="chartCard"><h3>Доход по сценариям</h3><div id="scenarioBars"></div></div>
+          <div class="chartCard"><h3>Структура revenue</h3><div id="expenseBreakdown"></div></div>
+        </div>
+        <div class="chartGrid">
+          <div class="chartCard"><h3>Накопленный cashflow</h3><div id="cashflowChart"></div></div>
+          <div class="chartCard"><h3>Точка окупаемости</h3><div id="paybackChart"></div></div>
+        </div>
+        <h3>Сценарии</h3>
+        <div id="scenarioTable" class="tableBox"></div>
+        <h3>Sensitivity: ROI при изменении ADR и occupancy</h3>
+        <div id="sensitivityTable" class="tableBox"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="assets/js/finance.js"></script>
+</body>
+</html>
