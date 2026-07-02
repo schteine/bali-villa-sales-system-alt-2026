@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
-  <header class="topbar">
+  <header class="topbar no-print">
     <div class="brand" onclick="location.href='index.html'">
       <b>Bali Villa Catalog</b>
       <span>finance model</span>
@@ -19,75 +19,116 @@
     </nav>
   </header>
 
-  <main class="wrap">
-    <section class="hero">
+  <main class="wrap financeWrap">
+    <section class="hero financeHero no-print">
       <div>
         <h1>Финмодель объекта</h1>
-        <p>Считай Developer / Model / Conservative ROI, cash-on-cash, break-even ADR и break-even occupancy.</p>
+        <p>Визуальная модель в стиле investment forecast: сценарии оплаты, структура дохода, капитализация, окупаемость и sensitivity.</p>
       </div>
-      <button class="primary" onclick="window.print()">Скачать PDF / Печать</button>
+      <div class="heroActions">
+        <button class="ghost" onclick="resetModel()">Сбросить</button>
+        <button class="primary" onclick="window.print()">Скачать PDF / Печать</button>
+      </div>
     </section>
 
-    <section class="modelLayout">
-      <form id="financeForm" class="panel inputPanel">
-        <h2>Входные данные</h2>
-        <div class="formGrid">
-          <label>Цена объекта, $
-            <input name="price" type="number" value="250000" min="0" step="1000" />
-          </label>
-          <label>Депозит / первый взнос, $
-            <input name="deposit" type="number" value="75000" min="0" step="1000" />
-          </label>
-          <label>Налоги + нотариус, %
-            <input name="taxes" type="number" value="3" min="0" step="0.1" />
-          </label>
-          <label>Furnishing / setup, $
-            <input name="furnishing" type="number" value="15000" min="0" step="1000" />
-          </label>
-          <label>Резерв, $
-            <input name="reserve" type="number" value="10000" min="0" step="1000" />
-          </label>
-          <label>ADR base, $
-            <input name="adr" type="number" value="250" min="0" step="5" />
-          </label>
-          <label>Occupancy base, %
-            <input name="occupancy" type="number" value="75" min="0" max="100" step="1" />
-          </label>
-          <label>Расходы от revenue, %
-            <input name="expenses" type="number" value="45" min="0" max="100" step="1" />
-          </label>
-          <label>Haircut conservative, %
-            <input name="haircut" type="number" value="20" min="0" max="90" step="1" />
-          </label>
-          <label>Leasehold осталось, лет
-            <input name="leaseLeft" type="number" value="30" min="0" step="1" />
-          </label>
-          <label>Срок владения, лет
-            <input name="holdYears" type="number" value="5" min="1" step="1" />
-          </label>
-          <label>Рост цены / год, %
-            <input name="growth" type="number" value="3" min="-20" step="0.5" />
-          </label>
+    <section class="panel no-print quickModelPanel">
+      <div class="quickModelHead">
+        <div>
+          <span class="eyebrow">Object source</span>
+          <h2>Выбери объект из каталога или введи цифры вручную</h2>
         </div>
+        <label class="objectSelectLabel">Объект
+          <select id="objectSelect"><option value="manual">Manual input</option></select>
+        </label>
+      </div>
+      <form id="financeForm" class="formGrid financeInputs">
+        <label>Цена объекта, $
+          <input name="price" type="number" value="419000" min="0" step="1000" />
+        </label>
+        <label>ADR, $
+          <input name="adr" type="number" value="320" min="0" step="5" />
+        </label>
+        <label>Occupancy, %
+          <input name="occupancy" type="number" value="75" min="0" max="100" step="1" />
+        </label>
+        <label>Срок владения, лет
+          <input name="holdYears" type="number" value="5" min="1" max="20" step="1" />
+        </label>
+        <label>Рост цены / год, %
+          <input name="growth" type="number" value="3" min="-20" step="0.5" />
+        </label>
+        <label>Скидка при полной оплате, %
+          <input name="discount" type="number" value="5" min="0" max="50" step="0.5" />
+        </label>
+        <label>Налоги + нотариус, %
+          <input name="taxes" type="number" value="3" min="0" step="0.1" />
+        </label>
+        <label>Furnishing / setup, $
+          <input name="furnishing" type="number" value="15000" min="0" step="1000" />
+        </label>
+        <label>Резерв, $
+          <input name="reserve" type="number" value="10000" min="0" step="1000" />
+        </label>
+        <label>Conservative haircut, %
+          <input name="haircut" type="number" value="20" min="0" max="90" step="1" />
+        </label>
+        <label>Down payment, %
+          <input name="downPayment" type="number" value="50" min="0" max="100" step="5" />
+        </label>
+        <label>During construction, %
+          <input name="duringConstruction" type="number" value="50" min="0" max="100" step="5" />
+        </label>
       </form>
+    </section>
 
-      <section class="panel outputPanel">
-        <h2>Выходные показатели</h2>
-        <div id="kpis" class="kpiGrid"></div>
-        <div id="mainInsight" class="insightBox"></div>
-        <div class="chartGrid">
-          <div class="chartCard"><h3>Доход по сценариям</h3><div id="scenarioBars"></div></div>
-          <div class="chartCard"><h3>Структура revenue</h3><div id="expenseBreakdown"></div></div>
-        </div>
-        <div class="chartGrid">
-          <div class="chartCard"><h3>Накопленный cashflow</h3><div id="cashflowChart"></div></div>
-          <div class="chartCard"><h3>Точка окупаемости</h3><div id="paybackChart"></div></div>
-        </div>
-        <h3>Сценарии</h3>
-        <div id="scenarioTable" class="tableBox"></div>
-        <h3>Sensitivity: ROI при изменении ADR и occupancy</h3>
-        <div id="sensitivityTable" class="tableBox"></div>
+    <section class="forecastShell">
+      <div class="forecastTitle">Investment forecast</div>
+      <div id="paymentCards" class="paymentCards"></div>
+
+      <div class="forecastGrid">
+        <section class="forecastCard summaryCard">
+          <div class="cardHead">
+            <h2>Investment summary</h2>
+            <div class="segMini"><button class="on">Summary</button><button>Details</button></div>
+          </div>
+          <div id="investmentSummary" class="investmentSummary"></div>
+        </section>
+
+        <section class="forecastCard structureCard">
+          <h2>Financial structure</h2>
+          <div id="financialStructure"></div>
+        </section>
+
+        <section class="forecastCard capCard">
+          <h2>Capitalization</h2>
+          <div id="capitalizationChart"></div>
+        </section>
+
+        <section class="forecastCard returnsCard">
+          <h2>Returns</h2>
+          <div id="returnsBlock"></div>
+        </section>
+      </div>
+
+      <section class="forecastCard paymentPlanCard">
+        <div class="cardHead darkHead"><h2>Payment plan</h2><strong id="paymentPlanTotal"></strong></div>
+        <div id="paymentPlan"></div>
       </section>
+
+      <div class="forecastGrid lowerCharts">
+        <section class="forecastCard">
+          <h2>Scenario income</h2>
+          <div id="scenarioBars"></div>
+        </section>
+        <section class="forecastCard">
+          <h2>Cumulative cashflow</h2>
+          <div id="cashflowChart"></div>
+        </section>
+        <section class="forecastCard wideCard">
+          <h2>Sensitivity: net ROI при изменении ADR и occupancy</h2>
+          <div id="sensitivityTable" class="tableBox"></div>
+        </section>
+      </div>
     </section>
   </main>
 

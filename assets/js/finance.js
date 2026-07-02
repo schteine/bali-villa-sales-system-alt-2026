@@ -1,72 +1,215 @@
-const $=s=>document.querySelector(s);
-const fmtMoney=n=>isFinite(n)?'$'+Math.round(n).toLocaleString('ru-RU'):'—';
-const fmtPct=n=>isFinite(n)?(n*100).toFixed(n*100<10?1:0).replace('.',',')+'%':'—';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const fmtMoney = n => isFinite(n) ? '$' + Math.round(n).toLocaleString('en-US') : '—';
+const fmtPct = n => isFinite(n) ? (n * 100).toFixed(n * 100 < 10 ? 1 : 0).replace('.', ',') + '%' : '—';
+const fmtNum = n => isFinite(n) ? Number(n).toLocaleString('en-US', {maximumFractionDigits: 1}) : '—';
+
+let LISTINGS = [];
+
+function parseCSV(text){
+  const rows=[]; let row=[], cur='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; }
+      else cur+=c;
+    }else{
+      if(c==='"') q=true;
+      else if(c===','){ row.push(cur); cur=''; }
+      else if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
+      else if(c!=='\r') cur+=c;
+    }
+  }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+function toNum(v){
+  if(v == null) return 0;
+  const s = String(v).replace(/[^0-9,\.\-]/g,'').replace(',', '.');
+  return Number(s)||0;
+}
+function rowsToObjects(csv){
+  const rows = parseCSV(csv.replace(/^\uFEFF/,''));
+  const h = rows.shift().map(x=>x.trim());
+  return rows.filter(r=>r.length && r[0]).map(r=>Object.fromEntries(h.map((k,i)=>[k, r[i] || ''])));
+}
+async function loadListings(){
+  try{
+    const res = await fetch('data/site_export_full.csv?cb=' + Date.now());
+    LISTINGS = rowsToObjects(await res.text());
+    const select = $('#objectSelect');
+    LISTINGS.filter(x=>!['Archive','Draft'].includes(x.Status)).forEach(x=>{
+      const opt = document.createElement('option');
+      opt.value = x.ID;
+      opt.textContent = `${x.ID} · ${x.Project} · ${x.Location} · ${fmtMoney(toNum(x.PriceUSD))}`;
+      select.appendChild(opt);
+    });
+  }catch(e){
+    console.warn('Could not load listings', e);
+  }
+}
+
+function applyListing(id){
+  if(id === 'manual') return;
+  const d = LISTINGS.find(x=>x.ID === id);
+  if(!d) return;
+  const f = $('#financeForm');
+  f.price.value = toNum(d.PriceUSD) || f.price.value;
+  f.adr.value = toNum(d.ADRBase) || f.adr.value;
+  f.occupancy.value = Math.round((toNum(d.OccupancyBase) <= 1 ? toNum(d.OccupancyBase)*100 : toNum(d.OccupancyBase)) || Number(f.occupancy.value));
+  f.growth.value = Number(f.growth.value) || 3;
+  update();
+}
 
 function readForm(){
-  const fd=new FormData($('#financeForm'));
-  const v={};
-  for(const [k,val] of fd.entries()) v[k]=Number(val)||0;
-  v.taxes/=100; v.occupancy/=100; v.expenses/=100; v.haircut/=100; v.growth/=100;
+  const fd = new FormData($('#financeForm'));
+  const v = {};
+  for(const [k,val] of fd.entries()) v[k] = Number(val) || 0;
+  ['taxes','occupancy','growth','discount','haircut','downPayment','duringConstruction'].forEach(k=>v[k]/=100);
+  v.holdYears = Math.max(1, Math.round(v.holdYears || 5));
   return v;
 }
 
-function calcScenario(v, adrMult, occMult, label){
-  const adr=v.adr*adrMult;
-  const occ=Math.min(0.98, v.occupancy*occMult);
-  const grossRevenue=adr*occ*365;
-  const expenses=grossRevenue*v.expenses;
-  const noi=grossRevenue-expenses;
-  const grossROI=grossRevenue/v.price;
-  const netROI=noi/v.price;
-  const conservativeROI=netROI*(1-v.haircut);
-  const totalCash=v.deposit+v.price*v.taxes+v.furnishing+v.reserve;
-  const cashOnCash=noi/Math.max(totalCash,1);
-  const payback=v.price/Math.max(noi,1);
-  const breakEvenOcc=(v.price*0.08)/(Math.max(v.adr,1)*365*(1-v.expenses));
-  const breakEvenADR=(v.price*0.08)/(Math.max(v.occupancy,0.01)*365*(1-v.expenses));
-  const resale=v.price*Math.pow(1+v.growth,v.holdYears);
-  return {label, adr, occ, grossRevenue, expenses, noi, grossROI, netROI, conservativeROI, totalCash, cashOnCash, payback, breakEvenOcc, breakEvenADR, resale};
+function calcRevenue(v, adrMult=1, occMult=1){
+  const adr = v.adr * adrMult;
+  const occ = Math.max(.05, Math.min(.98, v.occupancy * occMult));
+  const income = adr * occ * 365;
+  const ota = income * 0.144;
+  const direct = income * 0.020;
+  const afterCommissions = income - ota - direct;
+  const general = income * 0.126;
+  const management = afterCommissions * 0.20;
+  const beforeTax = afterCommissions - general - management;
+  const tax = Math.max(0, beforeTax * 0.10);
+  const net = beforeTax - tax;
+  return {adr, occ, income, ota, direct, afterCommissions, general, management, beforeTax, tax, net};
+}
+function calcModel(v){
+  const fullPrice = v.price * (1 - v.discount);
+  const totalInitialCosts = v.price * v.taxes + v.furnishing + v.reserve;
+  const totalInvestment = fullPrice + totalInitialCosts;
+  const installmentPrice = v.price;
+  const specialPrice = v.price;
+  const base = calcRevenue(v, 1, 1);
+  const conservative = calcRevenue(v, .85, .85);
+  const optimistic = calcRevenue(v, 1.15, 1.10);
+  const totalIncome = base.net * v.holdYears;
+  const resale = v.price * Math.pow(1 + v.growth, v.holdYears);
+  const capGain = Math.max(0, resale - v.price);
+  const simpleROI = totalIncome / Math.max(fullPrice,1);
+  const totalReturn = (totalIncome + capGain) / Math.max(totalInvestment,1);
+  const payback = fullPrice / Math.max(base.net, 1);
+  const irr = Math.pow((fullPrice + totalIncome + capGain) / Math.max(totalInvestment,1), 1 / v.holdYears) - 1;
+  return {v, fullPrice, installmentPrice, specialPrice, totalInitialCosts, totalInvestment, base, conservative, optimistic, totalIncome, resale, capGain, simpleROI, totalReturn, payback, irr};
 }
 
-function renderKPIs(base){
-  $('#kpis').innerHTML=[
-    [fmtPct(base.grossROI),'Gross ROI'],
-    [fmtPct(base.netROI),'Net ROI'],
-    [fmtPct(base.conservativeROI),'Conservative ROI'],
-    [fmtPct(base.cashOnCash),'Cash-on-cash'],
-    [base.payback.toFixed(1).replace('.',','),'Payback, years'],
-    [fmtPct(base.breakEvenOcc),'Break-even occupancy for 8% ROI'],
-    [fmtMoney(base.breakEvenADR),'Break-even ADR for 8% ROI'],
-    [fmtMoney(base.totalCash),'Total cash needed'],
-    [fmtMoney(base.resale),'Projected resale value']
-  ].map(x=>`<div class="kpi"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');
-  $('#mainInsight').innerHTML=`<b>Base scenario: ${fmtMoney(base.noi)} net income/year</b><span>При текущих вводных объект даёт ${fmtPct(base.netROI)} net ROI и окупается примерно за ${base.payback.toFixed(1).replace('.',',')} лет. Conservative ROI после haircut: ${fmtPct(base.conservativeROI)}.</span>`;
-}
-
-function renderScenarios(v){
-  const scenarios=[calcScenario(v,.85,.85,'Conservative'),calcScenario(v,1,1,'Base'),calcScenario(v,1.15,1.1,'Optimistic')];
-  $('#scenarioTable').innerHTML=`<table><tr><th>Scenario</th><th>ADR</th><th>Occupancy</th><th>Revenue</th><th>Expenses</th><th>NOI</th><th>Net ROI</th><th>Conservative ROI</th></tr>${scenarios.map(s=>`<tr><td><b>${s.label}</b></td><td>${fmtMoney(s.adr)}</td><td>${fmtPct(s.occ)}</td><td>${fmtMoney(s.grossRevenue)}</td><td>${fmtMoney(s.expenses)}</td><td>${fmtMoney(s.noi)}</td><td>${fmtPct(s.netROI)}</td><td>${fmtPct(s.conservativeROI)}</td></tr>`).join('')}</table>`;
-  renderScenarioBars(scenarios);
-  renderExpenseBreakdown(scenarios[1]);
-  renderCashflow(v, scenarios[1]);
-  renderPayback(v, scenarios[1]);
-  return scenarios[1];
-}
-
-function renderScenarioBars(scenarios){
-  const max=Math.max(...scenarios.map(s=>s.noi),1);
-  $('#scenarioBars').innerHTML=scenarios.map((s,i)=>`<div class="barRow"><b>${s.label}</b><div class="barTrack"><div class="barFill ${i===0?'warn':i===1?'soft':'good'}" style="width:${Math.max(4,s.noi/max*100)}%"></div></div><span>${fmtMoney(s.noi)}</span></div>`).join('')+`<div class="legend"><span><i class="dot warn"></i> Conservative</span><span><i class="dot soft"></i> Base</span><span><i class="dot good"></i> Optimistic</span></div>`;
-}
-
-function renderExpenseBreakdown(base){
-  const gross=base.grossRevenue||1;
-  const pieces=[
-    ['Net profit', base.noi, 'var(--good)'],
-    ['Operating expenses', base.expenses, 'var(--warn)']
+function renderPaymentCards(m){
+  const v=m.v;
+  const cards = [
+    {title:'Full prepayment', price:m.fullPrice, old:m.v.price, tag:`-${Math.round(v.discount*100)}%`, parts:[['100%','On handover','#f6c21a']]},
+    {title:'Installment plan', price:m.installmentPrice, tag:'', parts:[ [`${Math.round(v.downPayment*100)}%`,'Down payment','#f6c21a'], [`${Math.round((1-v.downPayment)*100)}%`,'During construction','#f59e0b'] ]},
+    {title:'Special offer', price:m.specialPrice, tag:'seller offer', parts:[['50%','Down payment','#f6c21a'],['15%','During construction','#f59e0b'],['15%','On handover','#d97706'],['20%','From rent','#92400e']]}
   ];
-  $('#expenseBreakdown').innerHTML=`<div class="expenseStack">${pieces.map(p=>`<span style="width:${p[1]/gross*100}%;background:${p[2]}"></span>`).join('')}</div>`+
-    pieces.map(p=>`<div class="barRow"><b>${p[0]}</b><div class="barTrack"><div class="barFill" style="width:${p[1]/gross*100}%;background:${p[2]}"></div></div><span>${fmtMoney(p[1])}</span></div>`).join('')+
-    `<p class="note">Gross revenue: ${fmtMoney(base.grossRevenue)} / year</p>`;
+  $('#paymentCards').innerHTML = cards.map((c,i)=>{
+    const total = c.parts.reduce((s,p)=>s+parseFloat(p[0]),0) || 100;
+    return `<article class="payOption ${i===0?'active':''}">
+      <div class="payTop"><h3>${c.title}</h3>${c.tag?`<span>${c.tag}</span>`:''}</div>
+      <div class="payPrice">${fmtMoney(c.price)} ${c.old && c.old!==c.price?`<em>${fmtMoney(c.old)}</em>`:''}</div>
+      <div class="payStripe">${c.parts.map(p=>`<i style="width:${parseFloat(p[0])/total*100}%;background:${p[2]}"></i>`).join('')}</div>
+      <div class="payLegend">${c.parts.map(p=>`<div><i style="background:${p[2]}"></i><b>${p[0]}</b><span>${p[1]}</span></div>`).join('')}</div>
+    </article>`;
+  }).join('');
+}
+
+function renderSummary(m){
+  const b = m.base;
+  const rows = [
+    ['ITEM','PER MONTH','PER YEAR',`${m.v.holdYears} YEARS`, 'head'],
+    ['Income', b.income/12, b.income, b.income*m.v.holdYears],
+    ['REVENUE EXPENSES','','','', 'section'],
+    ['OTA Commission', -b.ota/12, -b.ota, -b.ota*m.v.holdYears, 'neg'],
+    ['Direct Booking Commission', -b.direct/12, -b.direct, -b.direct*m.v.holdYears, 'neg'],
+    ['Profit after commissions', b.afterCommissions/12, b.afterCommissions, b.afterCommissions*m.v.holdYears, 'bold'],
+    ['PROFIT EXPENSES','','','', 'section'],
+    ['General costs', -b.general/12, -b.general, -b.general*m.v.holdYears, 'neg'],
+    ['Management Profit Commission', -b.management/12, -b.management, -b.management*m.v.holdYears, 'neg'],
+    ['Profit before tax', b.beforeTax/12, b.beforeTax, b.beforeTax*m.v.holdYears, 'bold'],
+    ['TAXES','','','', 'section'],
+    ['Investor income tax', -b.tax/12, -b.tax, -b.tax*m.v.holdYears, 'neg'],
+    ['Net profit', b.net/12, b.net, b.net*m.v.holdYears, 'total']
+  ];
+  $('#investmentSummary').innerHTML = `<table class="forecastTable">${rows.map(r=>{
+    if(r[4]==='head') return `<tr><th>${r[0]}</th><th>${r[1]}</th><th>${r[2]}</th><th>${r[3]}</th></tr>`;
+    if(r[4]==='section') return `<tr class="section"><td colspan="4">${r[0]}</td></tr>`;
+    const cls = r[4] || '';
+    return `<tr class="${cls}"><td>${r[0]}</td><td>${fmtMoney(r[1])}</td><td>${fmtMoney(r[2])}</td><td>${fmtMoney(r[3])}</td></tr>`;
+  }).join('')}</table>`;
+}
+
+function renderStructure(m){
+  const b = m.base;
+  const items = [
+    ['Investor Profit', b.net, '#65a30d'],
+    ['OTA Commission', b.ota, '#f87171'],
+    ['Direct Booking Commission', b.direct, '#ef4444'],
+    ['General costs', b.general, '#dc2626'],
+    ['Management Profit Commission', b.management, '#991b1b']
+  ];
+  const total = items.reduce((s,x)=>s+x[1],0) || 1;
+  let start=0;
+  const gradient = items.map(x=>{ const a=start; start += x[1]/total*360; return `${x[2]} ${a}deg ${start}deg`; }).join(',');
+  $('#financialStructure').innerHTML = `<div class="donutWrap">
+    <div class="donut" style="background:conic-gradient(${gradient})"><div><span>PER YEAR</span><b>${fmtMoney(b.income)}</b></div></div>
+    <div class="donutLegend">${items.map(x=>`<div><i style="background:${x[2]}"></i><span>${x[0]}</span><b>${fmtMoney(x[1])}</b></div>`).join('')}</div>
+  </div>`;
+}
+
+function renderCapitalization(m){
+  const years = [];
+  const now = new Date().getFullYear();
+  for(let i=0;i<=m.v.holdYears;i++) years.push(now+i);
+  const max = Math.max(...years.map((_,i)=>m.v.price*Math.pow(1+m.v.growth,i) + m.base.net*i),1);
+  $('#capitalizationChart').innerHTML = `<div class="capChart">
+    ${years.map((y,i)=>{
+      const paid = m.fullPrice;
+      const cap = Math.max(0, m.v.price*Math.pow(1+m.v.growth,i)-m.v.price);
+      const rent = m.base.net*i;
+      return `<div class="capCol">
+        <div class="capBar" style="height:${Math.max(16,(paid+cap+rent)/max*220)}px">
+          <i class="paid" style="height:${paid/(paid+cap+rent)*100}%"></i>
+          <i class="cap" style="height:${cap/(paid+cap+rent)*100}%"></i>
+          <i class="rent" style="height:${rent/(paid+cap+rent)*100}%"></i>
+        </div><span>${y}</span>
+      </div>`;
+    }).join('')}
+  </div><div class="legend"><span><i class="dot paid"></i>Paid</span><span><i class="dot cap"></i>Capitalization</span><span><i class="dot rent"></i>Rental income</span></div>`;
+}
+
+function renderReturns(m){
+  $('#returnsBlock').innerHTML = `<div class="returnsTop">
+    <div><span>ROI</span><b>${fmtPct(m.simpleROI)}</b></div>
+    <div><span>Total income</span><b>${fmtMoney(m.totalIncome)}</b></div>
+  </div>
+  <div class="returnStats">
+    <div><span>Payback</span><b>${fmtNum(m.payback)} years</b></div>
+    <div><span>IRR</span><b>${fmtPct(m.irr)}</b></div>
+    <div><span>Capital gain</span><b>${fmtMoney(m.capGain)}</b></div>
+  </div>
+  <div class="basedOn"><b>Based on</b><br>ADR ${fmtMoney(m.v.adr)} · Occupancy ${fmtPct(m.v.occupancy)} · Rental growth ${fmtPct(m.v.growth)} / yr · ${new Date().getFullYear()} → ${new Date().getFullYear()+m.v.holdYears}</div>`;
+}
+
+function renderPaymentPlan(m){
+  const p = m.fullPrice;
+  $('#paymentPlanTotal').textContent = fmtMoney(p);
+  $('#paymentPlan').innerHTML = `<div class="planBar"><span style="width:100%">100%</span></div>
+    <div class="planDetails"><div><i></i><span>Full payment · 1 × ${fmtMoney(p)}</span><b>${fmtMoney(p)}</b></div></div>`;
+}
+
+function renderScenarioBars(m){
+  const scenarios = [m.conservative, m.base, m.optimistic];
+  const labels = ['Conservative','Base','Optimistic'];
+  const max = Math.max(...scenarios.map(s=>s.net), 1);
+  $('#scenarioBars').innerHTML = scenarios.map((s,i)=>`<div class="scenarioBarRow"><b>${labels[i]}</b><div><span style="width:${Math.max(4, s.net/max*100)}%"></span></div><em>${fmtMoney(s.net)} / yr</em></div>`).join('');
 }
 
 function svgLine(points, width=640, height=260){
@@ -78,54 +221,53 @@ function svgLine(points, width=640, height=260){
   const coords=points.map((p,i)=>[pad+i*xStep, height-pad-(p.y-minY)*yScale]);
   const path=coords.map((c,i)=>(i?'L':'M')+c[0].toFixed(1)+' '+c[1].toFixed(1)).join(' ');
   const axisY=height-pad-(0-minY)*yScale;
-  return `<svg class="svgChart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+  return `<svg class="svgChart refined" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
     <line x1="${pad}" y1="${axisY}" x2="${width-pad}" y2="${axisY}" stroke="#ddd" />
-    <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height-pad}" stroke="#ddd" />
-    <path d="${path}" fill="none" stroke="#111" stroke-width="4" />
+    <path d="${path}" fill="none" stroke="#65a30d" stroke-width="5" />
     ${coords.map((c,i)=>`<circle cx="${c[0]}" cy="${c[1]}" r="4" fill="#111"/><text x="${c[0]}" y="${height-9}" font-size="11" text-anchor="middle">Y${i+1}</text>`).join('')}
     <text x="${pad}" y="18" font-size="12" fill="#777">${fmtMoney(maxY)}</text>
     <text x="${pad}" y="${height-38}" font-size="12" fill="#777">${fmtMoney(minY)}</text>
   </svg>`;
 }
-
-function renderCashflow(v, base){
-  const points=[]; let cum=0;
-  for(let y=1;y<=Math.min(10, Math.max(3, v.holdYears));y++){
-    cum += base.noi*Math.pow(1+v.growth,y-1);
+function renderCashflow(m){
+  const points=[]; let cum=-m.fullPrice;
+  for(let y=1;y<=Math.max(5,m.v.holdYears);y++){
+    cum += m.base.net*Math.pow(1+m.v.growth,y-1);
     points.push({x:y,y:cum});
   }
-  $('#cashflowChart').innerHTML=svgLine(points)+`<p class="note">Накопленный NOI за ${points.length} лет: ${fmtMoney(points.at(-1).y)}</p>`;
+  $('#cashflowChart').innerHTML = svgLine(points) + `<p class="note">Точка выше нуля = инвестор вернул тело инвестиции из rental cashflow.</p>`;
 }
-
-function renderPayback(v, base){
-  const points=[]; let cum=-v.price;
-  const years=Math.min(15, Math.max(5, Math.ceil(base.payback)+2));
-  for(let y=1;y<=years;y++){
-    cum += base.noi*Math.pow(1+v.growth,y-1);
-    points.push({x:y,y:cum});
-  }
-  const cross=points.findIndex(p=>p.y>=0)+1;
-  $('#paybackChart').innerHTML=svgLine(points)+`<p class="note">${cross>0?`Окупаемость примерно на ${cross}-м году.`:`За ${years} лет окупаемость не достигается.`}</p>`;
-}
-
-function renderSensitivity(v){
+function renderSensitivity(m){
   const adrMoves=[-.2,-.1,0,.1,.2];
   const occMoves=[-.2,-.1,0,.1,.2];
   const rows=occMoves.map(om=>`<tr><th>Occ ${(om*100).toFixed(0)}%</th>${adrMoves.map(am=>{
-    const adr=v.adr*(1+am), occ=Math.max(0.05,Math.min(.98,v.occupancy*(1+om)));
-    const roi=(adr*occ*365*(1-v.expenses))/v.price;
-    const cls=roi>=.1?'heat-good':roi>=.075?'heat-mid':'heat-low';
+    const x={...m.v, adr:m.v.adr*(1+am), occupancy:Math.max(.05,Math.min(.98,m.v.occupancy*(1+om)))};
+    const roi=calcRevenue(x).net/m.fullPrice;
+    const cls=roi>=.10?'heat-good':roi>=.075?'heat-mid':'heat-low';
     return `<td class="${cls}">${fmtPct(roi)}</td>`;
   }).join('')}</tr>`).join('');
-  $('#sensitivityTable').innerHTML=`<table><tr><th>Occupancy / ADR</th>${adrMoves.map(am=>`<th>ADR ${(am*100).toFixed(0)}%</th>`).join('')}</tr>${rows}</table>`;
+  $('#sensitivityTable').innerHTML = `<table><tr><th>Occupancy / ADR</th>${adrMoves.map(am=>`<th>ADR ${(am*100).toFixed(0)}%</th>`).join('')}</tr>${rows}</table>`;
 }
 
 function update(){
-  const v=readForm();
-  const base=renderScenarios(v);
-  renderKPIs(base);
-  renderSensitivity(v);
+  const m = calcModel(readForm());
+  renderPaymentCards(m);
+  renderSummary(m);
+  renderStructure(m);
+  renderCapitalization(m);
+  renderReturns(m);
+  renderPaymentPlan(m);
+  renderScenarioBars(m);
+  renderCashflow(m);
+  renderSensitivity(m);
+}
+function resetModel(){
+  $('#financeForm').reset();
+  $('#objectSelect').value = 'manual';
+  update();
 }
 
-document.querySelectorAll('#financeForm input').forEach(i=>i.addEventListener('input',update));
+document.addEventListener('input', e=>{ if(e.target.closest('#financeForm')) update(); });
+$('#objectSelect').addEventListener('change', e=>applyListing(e.target.value));
+loadListings().then(update);
 update();
