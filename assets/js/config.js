@@ -1,7 +1,7 @@
 window.APP_CONFIG = {
   // Заменить на published CSV вкладки site_export в Google Sheets.
   CSV_URL: '',
-  FALLBACK_CSV_URL: 'data/site_export_sample.csv',
+  FALLBACK_CSV_URL: 'data/site_export_full.csv',
 
   // Контакт для CTA.
   CONTACT_URL: 'https://t.me/alexschteine',

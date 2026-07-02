@@ -1,7 +1,7 @@
 let DATA=[];
 let mode='investment';
 let selected=[];
-let filters={location:'', type:'', budget:'', sort:'score'};
+let filters={location:'', type:'', budget:'', status:'active', sort:'score'};
 
 const $=sel=>document.querySelector(sel);
 const app=$('#app');
@@ -12,7 +12,8 @@ function photoUrl(item, index=1){
 }
 
 function title(item){
-  const type=(item.Type||'Object').toLowerCase()==='apartment'?'апартаменты':'вилла';
+  const rawType=(item.Type||'Object').toLowerCase();
+  const type=(rawType==='apartment'||rawType.includes('апарт'))?'апартаменты':'вилла';
   const br=!isNaN(item.bedrooms)?`${item.bedrooms}BR `:'';
   return `${br}${type} в ${item.Project}`;
 }
@@ -34,11 +35,21 @@ function setFiltersFromDom(){
   filters.location=$('#locationFilter').value;
   filters.type=$('#typeFilter').value;
   filters.budget=$('#budgetFilter').value;
+  filters.status=$('#statusFilter').value;
   filters.sort=$('#sortSelect').value;
+}
+
+function statusAllowed(item){
+  const st=item.Status||'Available';
+  if(filters.status==='all') return true;
+  if(filters.status==='archive') return ['Archive','Sold','Draft'].includes(st);
+  if(filters.status==='active') return ['Available','Reserved'].includes(st);
+  return st===filters.status;
 }
 
 function filteredData(){
   let list=applyClientIds(DATA).filter(x=>
+    statusAllowed(x) &&
     (!filters.location||x.Location===filters.location) &&
     (!filters.type||x.Type===filters.type) &&
     (!filters.budget||x.price<=Number(filters.budget))
@@ -75,6 +86,7 @@ function card(item){
     <div class="media" onclick="openDetail('${item.ID}')">
       <img src="${photoUrl(item,1)}" loading="lazy" onerror="this.style.display='none'" alt="${escapeHtml(item.Project)}" />
       <span class="badge">${escapeHtml(item.Stage||'Stage')}</span>
+      <span class="statusBadge ${escapeHtml(item.Status||'Available')}">${escapeHtml(item.Status||'Available')}</span>
       <span class="badge right">★ ${sc}</span>
     </div>
     <div class="cardBody">
@@ -173,7 +185,7 @@ function renderDetail(id){
     <div class="actions no-print" style="margin-bottom:12px">
       <button class="smallBtn" onclick="backCatalog()">← к каталогу</button>
       <button class="smallBtn" onclick="openMemo('${item.ID}')">Investment memo</button>
-      <button class="smallBtn" onclick="window.print()">PDF / Печать</button>
+      <button class="smallBtn" onclick="window.print()">PDF / Печать</button>${item.PresentationURL?`<a class="smallBtn" href="${escapeHtml(item.PresentationURL)}" target="_blank">Презентация</a>`:''}
     </div>
     <div class="detailHero">
       <div class="galleryHero"><img src="${photoUrl(item,1)}" onerror="this.style.display='none'" /></div>
@@ -287,8 +299,8 @@ async function init(){
     document.querySelectorAll('.modeSwitch button').forEach(b=>b.classList.remove('on'));
     btn.classList.add('on'); mode=btn.dataset.mode; renderCatalog();
   }));
-  ['#locationFilter','#typeFilter','#budgetFilter','#sortSelect'].forEach(s=>$(s).addEventListener('change',renderCatalog));
-  $('#resetBtn').addEventListener('click',()=>{['#locationFilter','#typeFilter','#budgetFilter'].forEach(s=>$(s).value=''); $('#sortSelect').value='score'; renderCatalog();});
+  ['#locationFilter','#typeFilter','#budgetFilter','#statusFilter','#sortSelect'].forEach(s=>$(s).addEventListener('change',renderCatalog));
+  $('#resetBtn').addEventListener('click',()=>{['#locationFilter','#typeFilter','#budgetFilter'].forEach(s=>$(s).value=''); $('#statusFilter').value='active'; $('#sortSelect').value='score'; renderCatalog();});
   $('#createShortlistBtn').addEventListener('click',createShortlistLink);
   $('#compareBtn').addEventListener('click',goCompare);
   $('#clearCompareBtn').addEventListener('click',clearCompare);
