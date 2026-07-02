@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Market Comparison — Bali / Thailand / Vietnam / UAE</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" onclick="location.href='index.html'">
+      <b>Bali Villa Catalog</b>
+      <span>market comparison</span>
+    </div>
+    <nav class="nav">
+      <a href="index.html">Каталог</a>
+      <a href="calculator.html">Финмодель</a>
+      <a href="markets.html">Рынки</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <div>
+        <h1>Бали vs альтернативные рынки</h1>
+        <p>Заготовка для разговора с клиентом, который сравнивает Бали с Таиландом, Вьетнамом и ОАЭ. Данные в CSV — шаблон, перед клиентским использованием обновить.</p>
+      </div>
+      <button class="primary" onclick="window.print()">Скачать PDF / Печать</button>
+    </section>
+    <section id="marketApp" class="panel"></section>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/markets.js"></script>
+</body>
+</html>

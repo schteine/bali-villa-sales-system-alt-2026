@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bali Villa Catalog — Client Shortlist</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" onclick="location.href='index.html'">
+      <b>Bali Villa Catalog</b>
+      <span>shortlist · compare · investment memo</span>
+    </div>
+    <nav class="nav">
+      <a href="index.html">Каталог</a>
+      <a href="calculator.html">Финмодель</a>
+      <a href="markets.html">Рынки</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="hero no-print">
+      <div>
+        <h1>Клиентская витрина объектов</h1>
+        <p>Показывай клиенту только нужные варианты: ROI в 3 сценариях, юридическая структура, красные флаги и персональная подборка.</p>
+      </div>
+      <div class="heroActions">
+        <button id="createShortlistBtn" class="primary">Создать ссылку для клиента</button>
+        <a id="contactBtn" class="ghost" target="_blank" rel="noreferrer">Связаться</a>
+      </div>
+    </section>
+
+    <section id="shortlistPanel" class="shortlistPanel hidden no-print"></section>
+
+    <section class="filters no-print">
+      <div class="modeSwitch" aria-label="Client mode">
+        <button data-mode="investment" class="on">Инвестиции</button>
+        <button data-mode="lifestyle">Для жизни</button>
+        <button data-mode="mixed">Смешанный</button>
+      </div>
+
+      <div class="filterGrid">
+        <label>Локация
+          <select id="locationFilter"><option value="">Все</option></select>
+        </label>
+        <label>Тип
+          <select id="typeFilter"><option value="">Все</option></select>
+        </label>
+        <label>Бюджет до
+          <select id="budgetFilter">
+            <option value="">Любой</option>
+            <option value="200000">$200k</option>
+            <option value="350000">$350k</option>
+            <option value="500000">$500k</option>
+            <option value="750000">$750k</option>
+          </select>
+        </label>
+        <label>Сортировка
+          <select id="sortSelect">
+            <option value="score">По рейтингу</option>
+            <option value="priceAsc">Цена ↑</option>
+            <option value="roiDesc">Conservative ROI ↓</option>
+            <option value="legalDesc">Legal score ↓</option>
+          </select>
+        </label>
+      </div>
+      <div class="metaLine"><span id="resultCount"></span><button id="resetBtn" class="linkBtn">Сбросить</button></div>
+    </section>
+
+    <section id="app"></section>
+  </main>
+
+  <div id="compareBar" class="compareBar hidden no-print">
+    <span id="compareCount"></span>
+    <button id="compareBtn">Сравнить</button>
+    <button id="clearCompareBtn" class="mutedBtn">Очистить</button>
+  </div>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/scoring.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
