@@ -1,6 +1,8 @@
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
-const fmtMoney = n => isFinite(n) ? '$' + Math.round(n).toLocaleString('en-US') : '—';
+const tr=k=>window.I18N?I18N.t(k):k;
+const curLang=()=>window.I18N?I18N.lang():'ru';
+const fmtMoney = n => isFinite(n) ? '$' + Math.round(n).toLocaleString(curLang()==='en'?'en-US':'ru-RU') : '—';
 const fmtPct = n => isFinite(n) ? (n * 100).toFixed(n * 100 < 10 ? 1 : 0).replace('.', ',') + '%' : '—';
 const fmtNum = n => isFinite(n) ? Number(n).toLocaleString('en-US', {maximumFractionDigits: 1}) : '—';
 
@@ -41,7 +43,7 @@ async function loadListings(){
     LISTINGS.filter(x=>!['Archive','Draft'].includes(x.Status)).forEach(x=>{
       const opt = document.createElement('option');
       opt.value = x.ID;
-      opt.textContent = `${x.ID} · ${x.Project} · ${x.Location} · ${fmtMoney(toNum(x.PriceUSD))}`;
+      opt.textContent = `${x.ID} · ${x.Project} · ${x.Location} · ${x.Bedrooms || '—'}BR · ${fmtMoney(toNum(x.PriceUSD))}`;
       select.appendChild(opt);
     });
   }catch(e){
@@ -106,9 +108,9 @@ function calcModel(v){
 function renderPaymentCards(m){
   const v=m.v;
   const cards = [
-    {title:'Full prepayment', price:m.fullPrice, old:m.v.price, tag:`-${Math.round(v.discount*100)}%`, parts:[['100%','On handover','#f6c21a']]},
-    {title:'Installment plan', price:m.installmentPrice, tag:'', parts:[ [`${Math.round(v.downPayment*100)}%`,'Down payment','#f6c21a'], [`${Math.round((1-v.downPayment)*100)}%`,'During construction','#f59e0b'] ]},
-    {title:'Special offer', price:m.specialPrice, tag:'seller offer', parts:[['50%','Down payment','#f6c21a'],['15%','During construction','#f59e0b'],['15%','On handover','#d97706'],['20%','From rent','#92400e']]}
+    {title:tr('fullPrepayment'), price:m.fullPrice, old:m.v.price, tag:`-${Math.round(v.discount*100)}%`, parts:[['100%',tr('onHandover'),'#f6c21a']]},
+    {title:tr('installmentPlan'), price:m.installmentPrice, tag:'', parts:[ [`${Math.round(v.downPayment*100)}%`,tr('downPayment'),'#f6c21a'], [`${Math.round((1-v.downPayment)*100)}%`,tr('duringBuild'),'#f59e0b'] ]},
+    {title:tr('specialOffer'), price:m.specialPrice, tag:'seller offer', parts:[['50%',tr('downPayment'),'#f6c21a'],['15%',tr('duringBuild'),'#f59e0b'],['15%',tr('onHandover'),'#d97706'],['20%',tr('fromRent'),'#92400e']]}
   ];
   $('#paymentCards').innerHTML = cards.map((c,i)=>{
     const total = c.parts.reduce((s,p)=>s+parseFloat(p[0]),0) || 100;
@@ -124,19 +126,19 @@ function renderPaymentCards(m){
 function renderSummary(m){
   const b = m.base;
   const rows = [
-    ['ITEM','PER MONTH','PER YEAR',`${m.v.holdYears} YEARS`, 'head'],
-    ['Income', b.income/12, b.income, b.income*m.v.holdYears],
-    ['REVENUE EXPENSES','','','', 'section'],
-    ['OTA Commission', -b.ota/12, -b.ota, -b.ota*m.v.holdYears, 'neg'],
-    ['Direct Booking Commission', -b.direct/12, -b.direct, -b.direct*m.v.holdYears, 'neg'],
-    ['Profit after commissions', b.afterCommissions/12, b.afterCommissions, b.afterCommissions*m.v.holdYears, 'bold'],
-    ['PROFIT EXPENSES','','','', 'section'],
-    ['General costs', -b.general/12, -b.general, -b.general*m.v.holdYears, 'neg'],
-    ['Management Profit Commission', -b.management/12, -b.management, -b.management*m.v.holdYears, 'neg'],
-    ['Profit before tax', b.beforeTax/12, b.beforeTax, b.beforeTax*m.v.holdYears, 'bold'],
-    ['TAXES','','','', 'section'],
-    ['Investor income tax', -b.tax/12, -b.tax, -b.tax*m.v.holdYears, 'neg'],
-    ['Net profit', b.net/12, b.net, b.net*m.v.holdYears, 'total']
+    ['ITEM',tr('perMonth'),tr('perYear'),`${m.v.holdYears} ${tr('years')}`, 'head'],
+    [tr('income'), b.income/12, b.income, b.income*m.v.holdYears],
+    [tr('revenueExpenses'),'','','', 'section'],
+    [tr('otaCommission'), -b.ota/12, -b.ota, -b.ota*m.v.holdYears, 'neg'],
+    [tr('directBookingCommission'), -b.direct/12, -b.direct, -b.direct*m.v.holdYears, 'neg'],
+    [tr('profitAfterCommissions'), b.afterCommissions/12, b.afterCommissions, b.afterCommissions*m.v.holdYears, 'bold'],
+    [tr('profitExpenses'),'','','', 'section'],
+    [tr('generalCosts'), -b.general/12, -b.general, -b.general*m.v.holdYears, 'neg'],
+    [tr('managementProfitCommission'), -b.management/12, -b.management, -b.management*m.v.holdYears, 'neg'],
+    [tr('profitBeforeTax'), b.beforeTax/12, b.beforeTax, b.beforeTax*m.v.holdYears, 'bold'],
+    [tr('taxesNotary').split('+')[0].trim(),'','','', 'section'],
+    [tr('investorIncomeTax'), -b.tax/12, -b.tax, -b.tax*m.v.holdYears, 'neg'],
+    [tr('netProfit'), b.net/12, b.net, b.net*m.v.holdYears, 'total']
   ];
   $('#investmentSummary').innerHTML = `<table class="forecastTable">${rows.map(r=>{
     if(r[4]==='head') return `<tr><th>${r[0]}</th><th>${r[1]}</th><th>${r[2]}</th><th>${r[3]}</th></tr>`;
@@ -149,17 +151,17 @@ function renderSummary(m){
 function renderStructure(m){
   const b = m.base;
   const items = [
-    ['Investor Profit', b.net, '#65a30d'],
-    ['OTA Commission', b.ota, '#f87171'],
-    ['Direct Booking Commission', b.direct, '#ef4444'],
-    ['General costs', b.general, '#dc2626'],
-    ['Management Profit Commission', b.management, '#991b1b']
+    [tr('netProfit'), b.net, '#65a30d'],
+    [tr('otaCommission'), b.ota, '#f87171'],
+    [tr('directBookingCommission'), b.direct, '#ef4444'],
+    [tr('generalCosts'), b.general, '#dc2626'],
+    [tr('managementProfitCommission'), b.management, '#991b1b']
   ];
   const total = items.reduce((s,x)=>s+x[1],0) || 1;
   let start=0;
   const gradient = items.map(x=>{ const a=start; start += x[1]/total*360; return `${x[2]} ${a}deg ${start}deg`; }).join(',');
   $('#financialStructure').innerHTML = `<div class="donutWrap">
-    <div class="donut" style="background:conic-gradient(${gradient})"><div><span>PER YEAR</span><b>${fmtMoney(b.income)}</b></div></div>
+    <div class="donut" style="background:conic-gradient(${gradient})"><div><span>${tr('perYear')}</span><b>${fmtMoney(b.income)}</b></div></div>
     <div class="donutLegend">${items.map(x=>`<div><i style="background:${x[2]}"></i><span>${x[0]}</span><b>${fmtMoney(x[1])}</b></div>`).join('')}</div>
   </div>`;
 }
@@ -182,34 +184,34 @@ function renderCapitalization(m){
         </div><span>${y}</span>
       </div>`;
     }).join('')}
-  </div><div class="legend"><span><i class="dot paid"></i>Paid</span><span><i class="dot cap"></i>Capitalization</span><span><i class="dot rent"></i>Rental income</span></div>`;
+  </div><div class="legend"><span><i class="dot paid"></i>${tr('paid')}</span><span><i class="dot cap"></i>${tr('capitalization')}</span><span><i class="dot rent"></i>${tr('rentalIncome')}</span></div>`;
 }
 
 function renderReturns(m){
   $('#returnsBlock').innerHTML = `<div class="returnsTop">
     <div><span>ROI</span><b>${fmtPct(m.simpleROI)}</b></div>
-    <div><span>Total income</span><b>${fmtMoney(m.totalIncome)}</b></div>
+    <div><span>${tr('totalIncome')}</span><b>${fmtMoney(m.totalIncome)}</b></div>
   </div>
   <div class="returnStats">
-    <div><span>Payback</span><b>${fmtNum(m.payback)} years</b></div>
+    <div><span>${tr('payback')}</span><b>${fmtNum(m.payback)} ${tr('years')}</b></div>
     <div><span>IRR</span><b>${fmtPct(m.irr)}</b></div>
-    <div><span>Capital gain</span><b>${fmtMoney(m.capGain)}</b></div>
+    <div><span>${tr('capitalGain')}</span><b>${fmtMoney(m.capGain)}</b></div>
   </div>
-  <div class="basedOn"><b>Based on</b><br>ADR ${fmtMoney(m.v.adr)} · Occupancy ${fmtPct(m.v.occupancy)} · Rental growth ${fmtPct(m.v.growth)} / yr · ${new Date().getFullYear()} → ${new Date().getFullYear()+m.v.holdYears}</div>`;
+  <div class="basedOn"><b>${tr('basedOn')}</b><br>ADR ${fmtMoney(m.v.adr)} · ${tr('occupancy').replace(', %','')} ${fmtPct(m.v.occupancy)} · ${tr('rentalGrowth')} ${fmtPct(m.v.growth)} / ${tr('year')} · ${new Date().getFullYear()} → ${new Date().getFullYear()+m.v.holdYears}</div>`;
 }
 
 function renderPaymentPlan(m){
   const p = m.fullPrice;
   $('#paymentPlanTotal').textContent = fmtMoney(p);
   $('#paymentPlan').innerHTML = `<div class="planBar"><span style="width:100%">100%</span></div>
-    <div class="planDetails"><div><i></i><span>Full payment · 1 × ${fmtMoney(p)}</span><b>${fmtMoney(p)}</b></div></div>`;
+    <div class="planDetails"><div><i></i><span>${tr('fullPrepayment')} · 1 × ${fmtMoney(p)}</span><b>${fmtMoney(p)}</b></div></div>`;
 }
 
 function renderScenarioBars(m){
   const scenarios = [m.conservative, m.base, m.optimistic];
-  const labels = ['Conservative','Base','Optimistic'];
+  const labels = [tr('conservative'),'Base','Optimistic'];
   const max = Math.max(...scenarios.map(s=>s.net), 1);
-  $('#scenarioBars').innerHTML = scenarios.map((s,i)=>`<div class="scenarioBarRow"><b>${labels[i]}</b><div><span style="width:${Math.max(4, s.net/max*100)}%"></span></div><em>${fmtMoney(s.net)} / yr</em></div>`).join('');
+  $('#scenarioBars').innerHTML = scenarios.map((s,i)=>`<div class="scenarioBarRow"><b>${labels[i]}</b><div><span style="width:${Math.max(4, s.net/max*100)}%"></span></div><em>${fmtMoney(s.net)} / ${tr('year')}</em></div>`).join('');
 }
 
 function svgLine(points, width=640, height=260){
@@ -235,7 +237,7 @@ function renderCashflow(m){
     cum += m.base.net*Math.pow(1+m.v.growth,y-1);
     points.push({x:y,y:cum});
   }
-  $('#cashflowChart').innerHTML = svgLine(points) + `<p class="note">Точка выше нуля = инвестор вернул тело инвестиции из rental cashflow.</p>`;
+  $('#cashflowChart').innerHTML = svgLine(points) + `<p class="note">${tr('paybackNote')}</p>`;
 }
 function renderSensitivity(m){
   const adrMoves=[-.2,-.1,0,.1,.2];
@@ -246,7 +248,7 @@ function renderSensitivity(m){
     const cls=roi>=.10?'heat-good':roi>=.075?'heat-mid':'heat-low';
     return `<td class="${cls}">${fmtPct(roi)}</td>`;
   }).join('')}</tr>`).join('');
-  $('#sensitivityTable').innerHTML = `<table><tr><th>Occupancy / ADR</th>${adrMoves.map(am=>`<th>ADR ${(am*100).toFixed(0)}%</th>`).join('')}</tr>${rows}</table>`;
+  $('#sensitivityTable').innerHTML = `<table><tr><th>${tr('occupancy').replace(', %','')} / ADR</th>${adrMoves.map(am=>`<th>ADR ${(am*100).toFixed(0)}%</th>`).join('')}</tr>${rows}</table>`;
 }
 
 function update(){
@@ -270,4 +272,5 @@ function resetModel(){
 document.addEventListener('input', e=>{ if(e.target.closest('#financeForm')) update(); });
 $('#objectSelect').addEventListener('change', e=>applyListing(e.target.value));
 loadListings().then(update);
+window.onLanguageChange=()=>{I18N.translateStatic(); update();};
 update();

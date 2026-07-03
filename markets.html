@@ -10,25 +10,26 @@
   <header class="topbar">
     <div class="brand" onclick="location.href='index.html'">
       <b>Bali Villa Catalog</b>
-      <span>market comparison</span>
+      <span data-i18n="marketBrand">market comparison</span>
     </div>
     <nav class="nav">
-      <a href="index.html">Каталог</a>
-      <a href="calculator.html">Финмодель</a>
-      <a href="markets.html">Рынки</a>
+      <a href="index.html" data-i18n="catalog">Каталог</a>
+      <a href="calculator.html" data-i18n="finance">Финмодель</a>
+      <a href="markets.html" data-i18n="markets">Рынки</a>
     </nav>
+    <div class="langSwitch no-print"><button class="langBtn" data-lang="ru" onclick="setLang('ru')">RU</button><button class="langBtn" data-lang="en" onclick="setLang('en')">EN</button></div>
   </header>
 
   <main class="wrap marketsWrap">
     <section class="hero marketHero">
       <div>
-        <div class="eyebrow">Market comparison</div>
-        <h1>Бали vs Дубай vs Пхукет vs Батуми</h1>
-        <p>Визуальная страница для разговора с клиентом, который выбирает страну для инвестиций. Данные взяты из твоего market snapshot и используются как рабочая база для презентации.</p>
+        <div class="eyebrow" data-i18n="marketBrand">Market comparison</div>
+        <h1 data-i18n="marketTitle">Бали vs Дубай vs Пхукет vs Батуми</h1>
+        <p data-i18n="marketText">Визуальная страница для разговора с клиентом, который выбирает страну для инвестиций. Русская версия адаптирована под продажу, английская — для международного клиента.</p>
       </div>
       <div class="heroActions">
-        <button class="ghost" onclick="document.getElementById('marketMatrix').scrollIntoView({behavior:'smooth'})">Сравнить таблицей</button>
-        <button class="primary" onclick="window.print()">Скачать PDF / Печать</button>
+        <button class="ghost" onclick="document.getElementById('marketMatrix').scrollIntoView({behavior:'smooth'})" data-i18n="compareTable">Сравнить таблицей</button>
+        <button class="primary" onclick="window.print()" data-i18n="downloadPdf">Скачать PDF / Печать</button>
       </div>
     </section>
 
@@ -36,6 +37,7 @@
   </main>
 
   <script src="assets/js/data.js"></script>
+  <script src="assets/js/i18n.js"></script>
   <script src="assets/js/markets.js"></script>
 </body>
 </html>

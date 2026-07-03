@@ -10,24 +10,25 @@
   <header class="topbar">
     <div class="brand" onclick="location.href='index.html'">
       <b>Bali Villa Catalog</b>
-      <span>shortlist · compare · investment memo</span>
+      <span data-i18n="shortlist">shortlist · compare · investment memo</span>
     </div>
     <nav class="nav">
-      <a href="index.html">Каталог</a>
-      <a href="calculator.html">Финмодель</a>
-      <a href="markets.html">Рынки</a>
+      <a href="index.html" data-i18n="catalog">Каталог</a>
+      <a href="calculator.html" data-i18n="finance">Финмодель</a>
+      <a href="markets.html" data-i18n="markets">Рынки</a>
     </nav>
+    <div class="langSwitch no-print"><button class="langBtn" data-lang="ru" onclick="setLang('ru')">RU</button><button class="langBtn" data-lang="en" onclick="setLang('en')">EN</button></div>
   </header>
 
   <main class="wrap">
     <section class="hero no-print">
       <div>
-        <h1>Клиентская витрина объектов</h1>
-        <p>Показывай клиенту только нужные варианты: ROI в 3 сценариях, юридическая структура, красные флаги и персональная подборка.</p>
+        <h1 data-i18n="heroTitle">Клиентская витрина объектов</h1>
+        <p data-i18n="heroText">Показывай клиенту только нужные проекты: варианты юнитов внутри проекта, ROI в 3 сценариях, юридическая структура, красные флаги и персональная подборка.</p>
       </div>
       <div class="heroActions">
-        <button id="createShortlistBtn" class="primary">Создать ссылку для клиента</button>
-        <a id="contactBtn" class="ghost" target="_blank" rel="noreferrer">Связаться</a>
+        <button id="createShortlistBtn" class="primary" data-i18n="createLink">Создать ссылку для клиента</button>
+        <a id="contactBtn" class="ghost" target="_blank" rel="noreferrer" data-i18n="contact">Связаться</a>
       </div>
     </section>
 
@@ -35,46 +36,46 @@
 
     <section class="filters no-print">
       <div class="modeSwitch" aria-label="Client mode">
-        <button data-mode="investment" class="on">Инвестиции</button>
-        <button data-mode="lifestyle">Для жизни</button>
-        <button data-mode="mixed">Смешанный</button>
+        <button data-mode="investment" class="on" data-i18n="investment">Инвестиции</button>
+        <button data-mode="lifestyle" data-i18n="lifestyle">Для жизни</button>
+        <button data-mode="mixed" data-i18n="mixed">Смешанный</button>
       </div>
 
       <div class="filterGrid">
-        <label>Локация
-          <select id="locationFilter"><option value="">Все</option></select>
+        <label><span data-i18n="location">Локация</span>
+          <select id="locationFilter"><option value="" data-i18n="all">Все</option></select>
         </label>
-        <label>Тип
-          <select id="typeFilter"><option value="">Все</option></select>
+        <label><span data-i18n="type">Тип</span>
+          <select id="typeFilter"><option value="" data-i18n="all">Все</option></select>
         </label>
-        <label>Бюджет до
+        <label><span data-i18n="budgetTo">Бюджет до</span>
           <select id="budgetFilter">
-            <option value="">Любой</option>
+            <option value="" data-i18n="any">Любой</option>
             <option value="200000">$200k</option>
             <option value="350000">$350k</option>
             <option value="500000">$500k</option>
             <option value="750000">$750k</option>
           </select>
         </label>
-        <label>Статус
+        <label><span data-i18n="status">Статус</span>
           <select id="statusFilter">
-            <option value="active">Актуальные</option>
-            <option value="Available">Available</option>
-            <option value="Reserved">Reserved</option>
-            <option value="archive">Архив / Sold / Draft</option>
-            <option value="all">Все статусы</option>
+            <option value="active" data-i18n="active">Актуальные</option>
+            <option value="Available" data-i18n="statusAvailable">Доступно</option>
+            <option value="Reserved" data-i18n="statusReserved">В брони</option>
+            <option value="archive" data-i18n="archived">Архив / Sold / Draft</option>
+            <option value="all" data-i18n="allStatuses">Все статусы</option>
           </select>
         </label>
-        <label>Сортировка
+        <label><span data-i18n="sort">Сортировка</span>
           <select id="sortSelect">
-            <option value="score">По рейтингу</option>
-            <option value="priceAsc">Цена ↑</option>
-            <option value="roiDesc">Conservative ROI ↓</option>
-            <option value="legalDesc">Legal score ↓</option>
+            <option value="score" data-i18n="byScore">По рейтингу</option>
+            <option value="priceAsc" data-i18n="priceUp">Цена ↑</option>
+            <option value="roiDesc" data-i18n="roiDown">Conservative ROI ↓</option>
+            <option value="legalDesc" data-i18n="legalDown">Legal score ↓</option>
           </select>
         </label>
       </div>
-      <div class="metaLine"><span id="resultCount"></span><button id="resetBtn" class="linkBtn">Сбросить</button></div>
+      <div class="metaLine"><span id="resultCount"></span><button id="resetBtn" class="linkBtn" data-i18n="reset">Сбросить</button></div>
     </section>
 
     <section id="app"></section>
@@ -82,10 +83,11 @@
 
   <div id="compareBar" class="compareBar hidden no-print">
     <span id="compareCount"></span>
-    <button id="compareBtn">Сравнить</button>
-    <button id="clearCompareBtn" class="mutedBtn">Очистить</button>
+    <button id="compareBtn" data-i18n="compare">Сравнить</button>
+    <button id="clearCompareBtn" class="mutedBtn" data-i18n="clear">Очистить</button>
   </div>
 
+  <script src="assets/js/i18n.js"></script>
   <script src="assets/js/config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/scoring.js"></script>

@@ -42,12 +42,15 @@ function pct(v){
 
 function money(v){
   const n=num(v);
-  return isNaN(n)?'—':'$'+Math.round(n).toLocaleString('ru-RU');
+  const locale=(window.I18N&&window.I18N.lang&&window.I18N.lang()==='en')?'en-US':'ru-RU';
+  return isNaN(n)?'—':'$'+Math.round(n).toLocaleString(locale);
 }
 
 function percent(v){
   const n=pct(v);
-  return isNaN(n)?'—':(n*100).toFixed(n*100<10?1:0).replace('.',',')+'%';
+  if(isNaN(n)) return '—';
+  const s=(n*100).toFixed(n*100<10?1:0);
+  return ((window.I18N&&window.I18N.lang&&window.I18N.lang()==='en')?s:s.replace('.',','))+'%';
 }
 
 function escapeHtml(s){
@@ -94,3 +97,5 @@ async function loadListings(){
   if(!text){ text=await loadCSV(cfg.FALLBACK_CSV_URL||'data/site_export_sample.csv'); }
   return csvToObjects(text).map(normalizeListing).filter(x=>x.ID);
 }
+
+window.money=money; window.percent=percent; window.num=num;

@@ -1,78 +1,32 @@
-# Bali Villa Catalog Site
+# Bali Villa Sales System Alt 2026 — v5
 
-Новый статический репозиторий для клиентской витрины недвижимости на Бали.
+Экспериментальная версия клиентского сайта для продажи недвижимости на Бали.
 
-## Что внутри
+## Что добавлено в v5
 
-- `index.html` — каталог, карточки объектов, сравнение, клиентская подборка и Investment Memo через print/PDF.
-- `calculator.html` — отдельная финансовая модель по объекту с 3 сценариями.
-- `markets.html` — сравнение Бали с альтернативными рынками.
-- `assets/js/config.js` — настройки ссылок на Google Sheets CSV и контакт.
-- `data/site_export_sample.csv` — пример клиентской выгрузки из Google Sheets.
-- `data/country_compare_sample.csv` — пример таблицы сравнения рынков.
-- `photos/` — папка для фото объектов по логике `ID_PREFIX-1.jpg`, `ID_PREFIX-2.jpg`.
+- Переключатель языка RU / EN на всех основных страницах.
+- Русские подписи и описания для каталога, финмодели и страницы рынков.
+- Английская версия для международных клиентов.
+- Проекты в каталоге теперь группируются: Aravita / Surfside / Privé и другие проекты показываются одной карточкой проекта, а варианты 1BR / 2BR / 3BR выбираются внутри карточки.
+- Внутри карточки объекта также есть переключение между юнитами одного проекта.
+- Финмодель переводит основные блоки и финансовые определения в зависимости от языка.
+- Страница рынков адаптирована для RU / EN с отдельной sales-логикой.
 
-## Как подключить Google Sheets
+## Как обновить GitHub
 
-1. В Google Sheets создай вкладку `site_export` с колонками как в `data/site_export_sample.csv`.
-2. Опубликуй вкладку в CSV: `File → Share → Publish to web → CSV`.
-3. Вставь ссылку в `assets/js/config.js` в поле `CSV_URL`.
-4. Оставь `FALLBACK_CSV_URL: 'data/site_export_sample.csv'`, чтобы сайт работал даже без live-таблицы.
+1. Распаковать архив.
+2. Скопировать содержимое папки в локальный репозиторий `bali-villa-sales-system-alt-2026`.
+3. Commit message: `Add bilingual UI and project grouping`.
+4. Push origin.
 
-## Как сделать клиентскую подборку
+## Фото
 
-1. Открой каталог.
-2. Отметь 2–5 объектов.
-3. Нажми `Создать ссылку для клиента`.
-4. Отправь клиенту ссылку вида:
+Фото остаются в папке:
 
-```text
-https://yourdomain.com/?ids=OA-01,UE-01,SF-01
-```
+`photos/`
 
-Клиент увидит только выбранные варианты.
+Формат:
 
-## Как сделать PDF Investment Memo
+`OA-1.jpg`, `OA-2.jpg`, `UE-1.jpg`, `UE-2.jpg`.
 
-1. Открой карточку объекта.
-2. Нажми `Investment memo`.
-3. Нажми `Скачать PDF / Печать`.
-4. В браузере выбери `Save as PDF`.
-
-## Деплой на GitHub Pages
-
-1. Создай новый репозиторий, например `bali-villa-catalog-site`.
-2. Загрузи все файлы из этой папки.
-3. В GitHub: `Settings → Pages → Deploy from branch → main / root`.
-4. Через 1–2 минуты сайт будет доступен по ссылке GitHub Pages.
-
-## Важно
-
-Сайт не должен получать всю внутреннюю базу. Он работает только с клиентской выгрузкой `site_export`.
-
-
-## Update 2
-
-Добавлено:
-
-- полный экспорт всех объектов из текущей таблицы: `data/site_export_full.csv`;
-- статусы объектов: `Available`, `Reserved`, `Sold`, `Archive`, `Draft`;
-- фильтр статуса на сайте;
-- карта фото: `data/photo_prefix_map.csv`;
-- инструкция загрузки фото: `docs/PHOTO_UPLOAD_GUIDE.md`;
-- визуальная финмодель: KPI, bars, cashflow chart, payback chart, expense breakdown, sensitivity heatmap.
-
-По умолчанию сайт показывает только `Available` и `Reserved`. Проданные, архивные и черновые объекты скрыты, но доступны через фильтр `Архив / Sold / Draft` или `Все статусы`.
-
-## v4 Market comparison
-
-`markets.html` now uses `data/market_compare_snapshot.csv` and renders a visual comparison of Bali, Dubai, Phuket and Batumi based on the provided market snapshot.
-
-The page includes:
-- quick verdict cards;
-- market cards by country;
-- yield and entry budget charts;
-- sales usage notes;
-- detailed comparison matrix.
-
-Before sending to clients, refresh tax/visa/legal assumptions for the exact year and property type.
+Первое фото с `-1.jpg` используется как главное фото проекта.

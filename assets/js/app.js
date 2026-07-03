@@ -2,310 +2,131 @@ let DATA=[];
 let mode='investment';
 let selected=[];
 let filters={location:'', type:'', budget:'', status:'active', sort:'score'};
+let cardUnit={};
 
 const $=sel=>document.querySelector(sel);
 const app=$('#app');
+const tr=k=>window.I18N?I18N.t(k):k;
+const fld=(item,k)=>window.I18N?I18N.field(item,k):(item[k]||'');
+const statusLbl=s=>window.I18N?I18N.statusLabel(s):s;
+const stageLbl=s=>window.I18N?I18N.stageLabel(s):s;
+const ownLbl=s=>window.I18N?I18N.ownershipLabel(s):s;
 
 function photoUrl(item, index=1){
   const prefix=item.PhotoPrefix || String(item.ID||'').split('-')[0];
   return `photos/${prefix}-${index}.jpg`;
 }
-
-function title(item){
-  const rawType=(item.Type||'Object').toLowerCase();
-  const type=(rawType==='apartment'||rawType.includes('апарт'))?'апартаменты':'вилла';
-  const br=!isNaN(item.bedrooms)?`${item.bedrooms}BR `:'';
-  return `${br}${type} в ${item.Project}`;
-}
-
 function unique(arr){return [...new Set(arr.filter(Boolean))].sort();}
-
-function idsFromUrl(){
-  const p=new URLSearchParams(location.search).get('ids');
-  return p?p.split(',').map(x=>x.trim()).filter(Boolean):[];
+function idsFromUrl(){const p=new URLSearchParams(location.search).get('ids');return p?p.split(',').map(x=>x.trim()).filter(Boolean):[];}
+function applyClientIds(list){const ids=idsFromUrl(); return ids.length?list.filter(x=>ids.includes(x.ID)):list;}
+function groupKey(item){return `${item.Project}||${item.Location}`;}
+function groupListings(list){
+  const map=new Map();
+  list.forEach(item=>{const k=groupKey(item); if(!map.has(k)) map.set(k,{key:k,project:item.Project,location:item.Location,items:[]}); map.get(k).items.push(item);});
+  return [...map.values()].map(g=>{g.items.sort((a,b)=>(a.bedrooms||99)-(b.bedrooms||99)||(a.price||9e9)-(b.price||9e9)); return g;});
 }
-
-function applyClientIds(list){
-  const ids=idsFromUrl();
-  if(!ids.length) return list;
-  return list.filter(x=>ids.includes(x.ID));
+function selectedUnit(g){const id=cardUnit[g.key]; return g.items.find(x=>x.ID===id)||g.items[0];}
+function projectStats(g){
+  const prices=g.items.map(x=>x.price).filter(x=>!isNaN(x));
+  const rois=g.items.map(x=>x.conservativeROI).filter(x=>!isNaN(x));
+  const brs=unique(g.items.map(x=>isNaN(x.bedrooms)?'':String(x.bedrooms).replace('.0','')));
+  return {minPrice:Math.min(...prices), maxPrice:Math.max(...prices), maxRoi:Math.max(...rois), brs};
 }
-
-function setFiltersFromDom(){
-  filters.location=$('#locationFilter').value;
-  filters.type=$('#typeFilter').value;
-  filters.budget=$('#budgetFilter').value;
-  filters.status=$('#statusFilter').value;
-  filters.sort=$('#sortSelect').value;
+function title(item, grouped=false){
+  const rawType=(item.Type||'Object').toLowerCase();
+  const type=(rawType==='apartment'||rawType.includes('апарт'))?(I18N?.lang()==='en'?'apartments':'апартаменты'):(I18N?.lang()==='en'?'villa':'вилла');
+  if(grouped) return `${item.Project}`;
+  const br=!isNaN(item.bedrooms)?`${item.bedrooms}BR `:'';
+  return I18N?.lang()==='en'?`${br}${type} in ${item.Project}`:`${br}${type} в ${item.Project}`;
 }
-
-function statusAllowed(item){
-  const st=item.Status||'Available';
-  if(filters.status==='all') return true;
-  if(filters.status==='archive') return ['Archive','Sold','Draft'].includes(st);
-  if(filters.status==='active') return ['Available','Reserved'].includes(st);
-  return st===filters.status;
-}
-
-function filteredData(){
-  let list=applyClientIds(DATA).filter(x=>
-    statusAllowed(x) &&
-    (!filters.location||x.Location===filters.location) &&
-    (!filters.type||x.Type===filters.type) &&
-    (!filters.budget||x.price<=Number(filters.budget))
-  );
-  list.sort((a,b)=>{
-    if(filters.sort==='priceAsc') return (a.price||9e9)-(b.price||9e9);
-    if(filters.sort==='roiDesc') return (b.conservativeROI||0)-(a.conservativeROI||0);
+function setFiltersFromDom(){filters.location=$('#locationFilter').value;filters.type=$('#typeFilter').value;filters.budget=$('#budgetFilter').value;filters.status=$('#statusFilter').value;filters.sort=$('#sortSelect').value;}
+function statusAllowed(item){const st=item.Status||'Available'; if(filters.status==='all') return true; if(filters.status==='archive') return ['Archive','Sold','Draft'].includes(st); if(filters.status==='active') return ['Available','Reserved'].includes(st); return st===filters.status;}
+function filteredItems(){return applyClientIds(DATA).filter(x=> statusAllowed(x)&&(!filters.location||x.Location===filters.location)&&(!filters.type||x.Type===filters.type)&&(!filters.budget||x.price<=Number(filters.budget)));}
+function filteredGroups(){
+  let groups=groupListings(filteredItems());
+  groups.sort((ga,gb)=>{
+    const a=selectedUnit(ga), b=selectedUnit(gb); const sa=projectStats(ga), sb=projectStats(gb);
+    if(filters.sort==='priceAsc') return (sa.minPrice||9e9)-(sb.minPrice||9e9);
+    if(filters.sort==='roiDesc') return (sb.maxRoi||0)-(sa.maxRoi||0);
     if(filters.sort==='legalDesc') return (b.legalScore||0)-(a.legalScore||0);
     return computedInvestorScore(b)-computedInvestorScore(a);
   });
-  return list;
+  return groups;
 }
-
 function modeText(item){
-  if(mode==='lifestyle'){
-    return `${item.Location} · ${isNaN(item.land)?'участок уточняется':item.land+' м² земли'} · ${item.Bedrooms||'—'} спальни`;
-  }
-  if(mode==='mixed'){
-    return `${percent(item.conservativeROI)} conservative ROI · ${item.Location} · ${item.Stage}`;
-  }
-  return `${percent(item.conservativeROI)} conservative ROI · ${money(item.adrBase)} ADR · ${percent(item.occupancyBase)} загрузка`;
+  if(mode==='lifestyle') return `${item.Location} · ${isNaN(item.land)?(I18N?.lang()==='en'?'land to clarify':'участок уточняется'):item.land+' m²'} · ${item.Bedrooms||'—'}BR`;
+  if(mode==='mixed') return `${percent(item.conservativeROI)} ${tr('conservativeRoi')} · ${item.Location} · ${stageLbl(item.Stage)}`;
+  return `${percent(item.conservativeROI)} ${tr('conservativeRoi')} · ${money(item.adrBase)} ADR · ${percent(item.occupancyBase)} ${tr('occupancy').replace(', %','').replace(', %','')}`;
 }
-
-function ownershipLine(item){
-  const type=item.OwnershipType||'Ownership to clarify';
-  const note=item.OwnershipNote||'';
-  return `${type}${item.LeaseYears?` · ${item.LeaseYears} years`:''}${note?` — ${note}`:''}`;
+function ownershipLine(item){return `${ownLbl(item.OwnershipType)}${item.LeaseYears?` · ${item.LeaseYears} years`:''}${item.Extension?` · ${item.Extension}`:''}`;}
+function unitButtons(g,current){
+  if(g.items.length<=1) return '';
+  return `<div class="unitPicker"><div class="unitTitle">${tr('unitOptions')}</div><div class="unitButtons">${g.items.map(u=>`<button class="unitBtn ${u.ID===current.ID?'on':''}" onclick="chooseCardUnit('${escapeHtml(g.key)}','${escapeHtml(u.ID)}')">${escapeHtml(u.Bedrooms||'—')}BR · ${money(u.price)}</button>`).join('')}</div></div>`;
 }
-
-function card(item){
-  const sc=computedInvestorScore(item);
-  const checked=selected.includes(item.ID)?'checked':'';
-  return `<article class="card">
+function chooseCardUnit(key,id){cardUnit[key]=id; renderCatalog();}
+function projectCard(g){
+  const item=selectedUnit(g), stats=projectStats(g), sc=computedInvestorScore(item), checked=selected.includes(item.ID)?'checked':'';
+  const brLine=stats.brs.length>1?`${stats.brs.join(' / ')}BR`:`${stats.brs[0]||item.Bedrooms||'—'}BR`;
+  return `<article class="card projectCard">
     <div class="media" onclick="openDetail('${item.ID}')">
       <img src="${photoUrl(item,1)}" loading="lazy" onerror="this.style.display='none'" alt="${escapeHtml(item.Project)}" />
-      <span class="badge">${escapeHtml(item.Stage||'Stage')}</span>
-      <span class="statusBadge ${escapeHtml(item.Status||'Available')}">${escapeHtml(item.Status||'Available')}</span>
+      <span class="badge">${escapeHtml(stageLbl(item.Stage||'Stage'))}</span>
+      <span class="statusBadge ${escapeHtml(item.Status||'Available')}">${escapeHtml(statusLbl(item.Status||'Available'))}</span>
       <span class="badge right">★ ${sc}</span>
     </div>
     <div class="cardBody">
-      <div class="loc">◎ ${escapeHtml(item.Location)} · ${escapeHtml(item.Type)}</div>
-      <div class="title" onclick="openDetail('${item.ID}')">${escapeHtml(title(item))}</div>
-      <div class="price">${money(item.price)}</div>
+      <div class="loc">◎ ${escapeHtml(item.Location)} · ${escapeHtml(item.Type)} · ${escapeHtml(brLine)}</div>
+      <div class="title" onclick="openDetail('${item.ID}')">${escapeHtml(title(item,true))}</div>
+      <div class="price">${tr('fromPrice')} ${money(stats.minPrice)}</div>
+      ${unitButtons(g,item)}
       <div class="chips">
-        <span class="chip">${escapeHtml(item.OwnershipType||'Ownership')}</span>
-        <span class="chip">${escapeHtml(item.PaymentPlan||'Payment уточнить')}</span>
+        <span class="chip">${escapeHtml(ownLbl(item.OwnershipType||'Ownership'))}</span>
+        <span class="chip">${escapeHtml(item.PaymentPlan||tr('paymentPlan'))}</span>
         <span class="chip">${escapeHtml(modeText(item))}</span>
       </div>
       <div class="roiRow">
-        <div class="roiBox"><b>${percent(item.developerROI)}</b><span>Developer ROI</span></div>
-        <div class="roiBox"><b>${percent(item.modelROI)}</b><span>Model ROI</span></div>
-        <div class="roiBox"><b>${percent(item.conservativeROI)}</b><span>Conservative</span></div>
+        <div class="roiBox"><b>${percent(item.developerROI)}</b><span>${tr('developerRoi')}</span></div>
+        <div class="roiBox"><b>${percent(item.modelROI)}</b><span>${tr('modelRoi')}</span></div>
+        <div class="roiBox"><b>${percent(item.conservativeROI)}</b><span>${tr('conservative')}</span></div>
       </div>
-      <div class="why"><b>Почему:</b> ${escapeHtml(item.WhyThisObject||'Добавить короткую причину')}</div>
-      <div class="redFlags"><b>Red flags:</b> ${escapeHtml(item.RedFlags||'Добавить риски')}</div>
-      <div class="legalNote"><b>Ownership:</b> ${escapeHtml(ownershipLine(item))}</div>
-      <div class="checkLine"><input type="checkbox" ${checked} onchange="toggleSelect('${item.ID}')" /> добавить в shortlist</div>
-      <div class="actions">
-        <button class="smallBtn" onclick="openDetail('${item.ID}')">Карточка</button>
-        <button class="smallBtn" onclick="openMemo('${item.ID}')">Investment memo</button>
-      </div>
+      <div class="why"><b>${tr('whyShort')}:</b> ${escapeHtml(fld(item,'WhyThisObject'))}</div>
+      <div class="redFlags"><b>${tr('redFlags')}:</b> ${escapeHtml(fld(item,'RedFlags'))}</div>
+      <div class="legalNote"><b>${tr('ownership')}:</b> ${escapeHtml(ownershipLine(item))}</div>
+      <div class="checkLine"><input type="checkbox" ${checked} onchange="toggleSelect('${item.ID}')" /> ${tr('addShortlist')}</div>
+      <div class="actions"><button class="smallBtn" onclick="openDetail('${item.ID}')">${tr('card')}</button><button class="smallBtn" onclick="openMemo('${item.ID}')">${tr('memo')}</button></div>
     </div>
   </article>`;
 }
-
 function renderCatalog(){
-  setFiltersFromDom();
-  const list=filteredData();
-  $('#resultCount').textContent=`Объектов: ${list.length} из ${applyClientIds(DATA).length}`;
-  app.innerHTML=list.length?`<div class="grid">${list.map(card).join('')}</div>`:'<div class="panel">Ничего не найдено. Ослабь фильтры.</div>';
+  setFiltersFromDom(); const groups=filteredGroups();
+  $('#resultCount').textContent=`${tr('objects')}: ${groups.length} ${tr('from')} ${groupListings(applyClientIds(DATA)).length}`;
+  app.innerHTML=groups.length?`<div class="grid">${groups.map(projectCard).join('')}</div>`:`<div class="panel">${tr('nothingFound')}</div>`;
   renderCompareBar();
 }
-
 function fillFilters(){
-  const loc=$('#locationFilter'), type=$('#typeFilter');
+  const loc=$('#locationFilter'), type=$('#typeFilter'); loc.innerHTML=`<option value="">${tr('all')}</option>`; type.innerHTML=`<option value="">${tr('all')}</option>`;
   unique(DATA.map(x=>x.Location)).forEach(v=>loc.insertAdjacentHTML('beforeend',`<option>${escapeHtml(v)}</option>`));
   unique(DATA.map(x=>x.Type)).forEach(v=>type.insertAdjacentHTML('beforeend',`<option>${escapeHtml(v)}</option>`));
 }
-
-function renderCompareBar(){
-  const bar=$('#compareBar');
-  if(selected.length>=2 && !location.hash.startsWith('#compare')){
-    $('#compareCount').textContent=`Выбрано: ${selected.length}`;
-    bar.classList.remove('hidden');
-  }else bar.classList.add('hidden');
-}
-
-function toggleSelect(id){
-  const max=(window.APP_CONFIG&&window.APP_CONFIG.MAX_SHORTLIST)||5;
-  if(selected.includes(id)) selected=selected.filter(x=>x!==id);
-  else{
-    if(selected.length>=max){alert(`Максимум ${max} объектов`);return renderCatalog();}
-    selected.push(id);
-  }
-  renderCatalog();
-}
-
-function createShortlistLink(){
-  if(!selected.length){alert('Сначала выбери 2–5 объектов');return;}
-  const url=new URL(location.href);
-  url.hash='';
-  url.searchParams.set('ids', selected.join(','));
-  const panel=$('#shortlistPanel');
-  panel.classList.remove('hidden');
-  panel.innerHTML=`<b>Клиентская ссылка готова</b><div class="note" style="color:#ccc">Отправь клиенту — он увидит только выбранные объекты.</div><input readonly value="${escapeHtml(url.toString())}" onclick="this.select()" />`;
-  navigator.clipboard?.writeText(url.toString()).catch(()=>{});
-}
-
-function clearCompare(){selected=[]; renderCatalog();}
-function goCompare(){location.hash='compare/'+selected.join(',');}
-function openDetail(id){location.hash='o/'+encodeURIComponent(id);}
-function openMemo(id){location.hash='memo/'+encodeURIComponent(id);}
-function backCatalog(){location.hash='';}
-
-function getItem(id){return DATA.find(x=>x.ID===id);}
-
-function detailFacts(item){
-  return [
-    [money(item.price),'Цена'],
-    [isNaN(item.pricePerSqm)?'—':money(item.pricePerSqm),'Цена за м²'],
-    [item.Bedrooms||'—','Спальни'],
-    [isNaN(item.build)?'—':item.build+' м²','Площадь'],
-    [isNaN(item.land)?'—':item.land+' м²','Земля'],
-    [item.Stage||'—','Стадия'],
-    [item.CompletionDate||'—','Сдача'],
-    [item.PaymentPlan||'—','Payment plan']
-  ];
-}
-
-function renderDetail(id){
-  const item=getItem(id); if(!item){backCatalog(); return;}
-  app.innerHTML=`<section class="detail">
-    <div class="actions no-print" style="margin-bottom:12px">
-      <button class="smallBtn" onclick="backCatalog()">← к каталогу</button>
-      <button class="smallBtn" onclick="openMemo('${item.ID}')">Investment memo</button>
-      <button class="smallBtn" onclick="window.print()">PDF / Печать</button>${item.PresentationURL?`<a class="smallBtn" href="${escapeHtml(item.PresentationURL)}" target="_blank">Презентация</a>`:''}
-    </div>
-    <div class="detailHero">
-      <div class="galleryHero"><img src="${photoUrl(item,1)}" onerror="this.style.display='none'" /></div>
-      <div class="detailHead panel">
-        <div class="loc">${escapeHtml(item.Location)} · ${escapeHtml(item.Type)}</div>
-        <h1>${escapeHtml(title(item))}</h1>
-        <div class="detailPrice">${money(item.price)}</div>
-        <div class="chips" style="margin:10px 0">
-          <span class="chip">★ Investor score ${computedInvestorScore(item)}</span>
-          <span class="chip">Legal ${item.LegalScore||'—'}</span>
-          <span class="chip">${escapeHtml(item.OwnershipType||'Ownership')}</span>
-        </div>
-        <div class="roiRow">
-          <div class="roiBox"><b>${percent(item.developerROI)}</b><span>Developer ROI</span></div>
-          <div class="roiBox"><b>${percent(item.modelROI)}</b><span>Model ROI</span></div>
-          <div class="roiBox"><b>${percent(item.conservativeROI)}</b><span>Conservative ROI</span></div>
-        </div>
-      </div>
-    </div>
-    <h3 class="sectionTitle">Ключевые параметры</h3>
-    <div class="factGrid">${detailFacts(item).map(f=>`<div class="fact"><b>${escapeHtml(f[0])}</b><span>${escapeHtml(f[1])}</span></div>`).join('')}</div>
-    <h3 class="sectionTitle">Вывод</h3>
-    <div class="twoCols">
-      <div class="textBox good"><b>Почему этот объект</b><p>${escapeHtml(item.WhyThisObject)}</p></div>
-      <div class="textBox"><b>Кому подходит</b><p>${escapeHtml(item.FitsClient)}</p></div>
-    </div>
-    <h3 class="sectionTitle">Юридическая структура</h3>
-    <div class="textBox"><b>${escapeHtml(item.OwnershipDetail||item.OwnershipType)}</b><p>${escapeHtml(item.OwnershipNote||'Добавить пояснение по структуре владения.')}</p></div>
-    <h3 class="sectionTitle">Красные флаги</h3>
-    <div class="textBox warn">${escapeHtml(item.RedFlags||'Добавить red flags')}</div>
-    <h3 class="sectionTitle">Sales note</h3>
-    <div class="textBox">${escapeHtml(item.SalesNote||'Добавить короткий sales вывод')}</div>
-  </section>`;
-  renderCompareBar();
-}
-
-function renderCompare(ids){
-  const items=ids.map(getItem).filter(Boolean);
-  if(items.length<2){backCatalog();return;}
-  const rows=[
-    ['Цена', x=>money(x.price), 'min', x=>x.price],
-    ['Цена за м²', x=>isNaN(x.pricePerSqm)?'—':money(x.pricePerSqm), 'min', x=>x.pricePerSqm],
-    ['Developer ROI', x=>percent(x.developerROI), 'max', x=>x.developerROI],
-    ['Model ROI', x=>percent(x.modelROI), 'max', x=>x.modelROI],
-    ['Conservative ROI', x=>percent(x.conservativeROI), 'max', x=>x.conservativeROI],
-    ['Investor score', x=>computedInvestorScore(x), 'max', x=>computedInvestorScore(x)],
-    ['Legal score', x=>x.LegalScore||'—', 'max', x=>num(x.LegalScore)],
-    ['Lease / ownership', x=>ownershipLine(x), '', x=>NaN],
-    ['Сдача', x=>x.CompletionDate||x.Stage, '', x=>NaN],
-    ['Почему объект', x=>x.WhyThisObject, '', x=>NaN],
-    ['Red flags', x=>x.RedFlags, '', x=>NaN]
-  ];
-  const bestIndex=(row)=>{
-    const vals=items.map(row[4]);
-    let bi=-1,bv=null;
-    vals.forEach((v,i)=>{ if(isNaN(v)) return; if(bv===null||(row[2]==='max'?v>bv:v<bv)){bv=v;bi=i;} });
-    return bi;
-  };
-  app.innerHTML=`<section class="panel">
-    <div class="actions no-print" style="margin-bottom:12px"><button class="smallBtn" onclick="backCatalog()">← к каталогу</button><button class="smallBtn" onclick="window.print()">PDF / Печать</button></div>
-    <h2>Сравнение объектов</h2>
-    <div class="tableBox"><table>
-      <tr><th></th>${items.map(x=>`<th>${escapeHtml(x.Project)}<br><span class="note">${escapeHtml(x.Location)}</span></th>`).join('')}</tr>
-      ${rows.map(row=>{const bi=bestIndex(row);return `<tr><th>${row[0]}</th>${items.map((x,i)=>`<td class="${i===bi?'best':''}">${escapeHtml(row[1](x))}</td>`).join('')}</tr>`}).join('')}
-    </table></div>
-  </section>`;
-  renderCompareBar();
-}
-
-function renderMemo(id){
-  const item=getItem(id); if(!item){backCatalog();return;}
-  app.innerHTML=`<section class="memo panel">
-    <div class="actions no-print" style="margin-bottom:12px"><button class="smallBtn" onclick="renderDetail('${item.ID}')">← карточка</button><button class="smallBtn" onclick="window.print()">Скачать PDF / Печать</button></div>
-    <div class="memoHeader">
-      <div><h1>${escapeHtml(item.Project)} · ${escapeHtml(item.Bedrooms||'')}BR</h1><div class="note">${escapeHtml(item.Location)} · ${escapeHtml(item.Type)} · ID ${escapeHtml(item.ID)}</div></div>
-      <div class="memoPrice">${money(item.price)}</div>
-    </div>
-    <h3 class="sectionTitle">Investment snapshot</h3>
-    <div class="factGrid">${detailFacts(item).map(f=>`<div class="fact"><b>${escapeHtml(f[0])}</b><span>${escapeHtml(f[1])}</span></div>`).join('')}</div>
-    <h3 class="sectionTitle">ROI scenarios</h3>
-    <div class="factGrid">
-      <div class="fact"><b>${percent(item.developerROI)}</b><span>Developer ROI</span></div>
-      <div class="fact"><b>${percent(item.modelROI)}</b><span>Model ROI</span></div>
-      <div class="fact"><b>${percent(item.conservativeROI)}</b><span>Conservative ROI</span></div>
-      <div class="fact"><b>${escapeHtml(item.ROISource||'—')}</b><span>ROI source</span></div>
-    </div>
-    <h3 class="sectionTitle">Why this object</h3><div class="textBox good">${escapeHtml(item.WhyThisObject)}</div>
-    <h3 class="sectionTitle">Client fit</h3><div class="textBox">${escapeHtml(item.FitsClient)}</div>
-    <h3 class="sectionTitle">Legal / ownership</h3><div class="textBox"><b>${escapeHtml(item.OwnershipDetail||item.OwnershipType)}</b><p>${escapeHtml(item.OwnershipNote)}</p></div>
-    <h3 class="sectionTitle">Red flags</h3><div class="textBox warn">${escapeHtml(item.RedFlags)}</div>
-    <h3 class="sectionTitle">Next step</h3><div class="textBox">Confirm availability, request legal package, check reservation terms and prepare DD checklist before deposit.</div>
-    <div class="memoFooter">Not a public offer or investment advice. Figures are based on available information and need to be verified before transaction. Updated: ${escapeHtml(item.UpdatedAt||'—')}</div>
-  </section>`;
-}
-
-function route(){
-  const h=decodeURIComponent(location.hash.replace(/^#/,''));
-  if(h.startsWith('o/')) return renderDetail(h.slice(2));
-  if(h.startsWith('compare/')) return renderCompare(h.slice(8).split(','));
-  if(h.startsWith('memo/')) return renderMemo(h.slice(5));
-  renderCatalog();
-}
-
-async function init(){
-  DATA=await loadListings();
-  fillFilters();
-  const ids=idsFromUrl();
-  if(ids.length){selected=ids.filter(id=>DATA.some(x=>x.ID===id));}
-  $('#contactBtn').href=(window.APP_CONFIG&&window.APP_CONFIG.CONTACT_URL)||'#';
-  document.querySelectorAll('.modeSwitch button').forEach(btn=>btn.addEventListener('click',()=>{
-    document.querySelectorAll('.modeSwitch button').forEach(b=>b.classList.remove('on'));
-    btn.classList.add('on'); mode=btn.dataset.mode; renderCatalog();
-  }));
-  ['#locationFilter','#typeFilter','#budgetFilter','#statusFilter','#sortSelect'].forEach(s=>$(s).addEventListener('change',renderCatalog));
-  $('#resetBtn').addEventListener('click',()=>{['#locationFilter','#typeFilter','#budgetFilter'].forEach(s=>$(s).value=''); $('#statusFilter').value='active'; $('#sortSelect').value='score'; renderCatalog();});
-  $('#createShortlistBtn').addEventListener('click',createShortlistLink);
-  $('#compareBtn').addEventListener('click',goCompare);
-  $('#clearCompareBtn').addEventListener('click',clearCompare);
-  window.addEventListener('hashchange',route);
-  route();
-}
-
+function renderCompareBar(){const bar=$('#compareBar'); if(selected.length>=2 && !location.hash.startsWith('#compare')){$('#compareCount').textContent=`${I18N?.lang()==='en'?'Selected':'Выбрано'}: ${selected.length}`;bar.classList.remove('hidden');}else bar.classList.add('hidden');}
+function toggleSelect(id){const max=(window.APP_CONFIG&&window.APP_CONFIG.MAX_SHORTLIST)||5; if(selected.includes(id)) selected=selected.filter(x=>x!==id); else{if(selected.length>=max){alert(`Максимум ${max} объектов`);return renderCatalog();} selected.push(id);} renderCatalog();}
+function createShortlistLink(){if(!selected.length){alert(I18N?.lang()==='en'?'Choose 2–5 objects first':'Сначала выбери 2–5 объектов');return;} const url=new URL(location.href); url.hash=''; url.searchParams.set('ids', selected.join(',')); const panel=$('#shortlistPanel'); panel.classList.remove('hidden'); panel.innerHTML=`<b>${tr('clientLinkReady')}</b><div class="note" style="color:#ccc">${tr('clientLinkNote')}</div><input readonly value="${escapeHtml(url.toString())}" onclick="this.select()" />`; navigator.clipboard?.writeText(url.toString()).catch(()=>{});}
+function clearCompare(){selected=[]; renderCatalog();} function goCompare(){location.hash='compare/'+selected.join(',');} function openDetail(id){location.hash='o/'+encodeURIComponent(id);} function openMemo(id){location.hash='memo/'+encodeURIComponent(id);} function backCatalog(){location.hash='';}
+function getItem(id){return DATA.find(x=>x.ID===id);} function getProjectItems(item){return DATA.filter(x=>x.Project===item.Project&&x.Location===item.Location).sort((a,b)=>(a.bedrooms||99)-(b.bedrooms||99));}
+function detailFacts(item){return [[money(item.price),tr('price')],[isNaN(item.pricePerSqm)?'—':money(item.pricePerSqm),tr('pricePerSqm')],[item.Bedrooms||'—',tr('bedrooms')],[isNaN(item.build)?'—':item.build+' m²',tr('area')],[isNaN(item.land)?'—':item.land+' m²',tr('land')],[stageLbl(item.Stage)||'—',tr('stage')],[item.CompletionDate||'—',tr('completion')],[item.PaymentPlan||'—',tr('paymentPlan')]];}
+function detailUnitSwitch(item){const units=getProjectItems(item); if(units.length<=1)return ''; return `<div class="detailUnitSwitch no-print"><b>${tr('unitOptions')}</b>${units.map(u=>`<button class="unitBtn ${u.ID===item.ID?'on':''}" onclick="openDetail('${u.ID}')">${u.Bedrooms}BR · ${money(u.price)}</button>`).join('')}</div>`;}
+function renderDetail(id){const item=getItem(id); if(!item){backCatalog(); return;} app.innerHTML=`<section class="detail">
+  <div class="actions no-print" style="margin-bottom:12px"><button class="smallBtn" onclick="backCatalog()">${tr('backCatalog')}</button><button class="smallBtn" onclick="openMemo('${item.ID}')">${tr('memo')}</button><button class="smallBtn" onclick="window.print()">${tr('printPdf')}</button>${item.PresentationURL?`<a class="smallBtn" href="${escapeHtml(item.PresentationURL)}" target="_blank">${tr('presentation')}</a>`:''}</div>
+  ${detailUnitSwitch(item)}
+  <div class="detailHero"><div class="galleryHero"><img src="${photoUrl(item,1)}" onerror="this.style.display='none'" /></div><div class="detailHead panel"><div class="loc">${escapeHtml(item.Location)} · ${escapeHtml(item.Type)}</div><h1>${escapeHtml(title(item))}</h1><div class="detailPrice">${money(item.price)}</div><div class="chips" style="margin:10px 0"><span class="chip">★ ${tr('investorScore')} ${computedInvestorScore(item)}</span><span class="chip">${tr('legal')} ${item.LegalScore||'—'}</span><span class="chip">${escapeHtml(ownLbl(item.OwnershipType||'Ownership'))}</span></div><div class="roiRow"><div class="roiBox"><b>${percent(item.developerROI)}</b><span>${tr('developerRoi')}</span></div><div class="roiBox"><b>${percent(item.modelROI)}</b><span>${tr('modelRoi')}</span></div><div class="roiBox"><b>${percent(item.conservativeROI)}</b><span>${tr('conservativeRoi')}</span></div></div></div></div>
+  <h3 class="sectionTitle">${tr('keyParams')}</h3><div class="factGrid">${detailFacts(item).map(f=>`<div class="fact"><b>${escapeHtml(f[0])}</b><span>${escapeHtml(f[1])}</span></div>`).join('')}</div>
+  <h3 class="sectionTitle">${tr('conclusion')}</h3><div class="twoCols"><div class="textBox good"><b>${tr('why')}</b><p>${escapeHtml(fld(item,'WhyThisObject'))}</p></div><div class="textBox"><b>${tr('fits')}</b><p>${escapeHtml(fld(item,'FitsClient'))}</p></div></div>
+  <h3 class="sectionTitle">${tr('ownershipStructure')}</h3><div class="textBox"><b>${escapeHtml(item.OwnershipDetail||ownLbl(item.OwnershipType))}</b><p>${escapeHtml(I18N.ownershipNote(item))}</p></div>
+  <h3 class="sectionTitle">${tr('redFlags')}</h3><div class="textBox warn">${escapeHtml(fld(item,'RedFlags'))}</div>
+  <h3 class="sectionTitle">${tr('salesNote')}</h3><div class="textBox">${escapeHtml(fld(item,'SalesNote'))}</div>
+</section>`; renderCompareBar();}
+function renderCompare(ids){const items=ids.map(getItem).filter(Boolean); if(items.length<2){backCatalog();return;} const rows=[ [tr('price'),x=>money(x.price),'min',x=>x.price], [tr('pricePerSqm'),x=>isNaN(x.pricePerSqm)?'—':money(x.pricePerSqm),'min',x=>x.pricePerSqm], [tr('developerRoi'),x=>percent(x.developerROI),'max',x=>x.developerROI], [tr('modelRoi'),x=>percent(x.modelROI),'max',x=>x.modelROI], [tr('conservativeRoi'),x=>percent(x.conservativeROI),'max',x=>x.conservativeROI], [tr('investorScore'),x=>computedInvestorScore(x),'max',x=>computedInvestorScore(x)], [tr('legal'),x=>x.LegalScore||'—','max',x=>num(x.LegalScore)], [tr('ownership'),x=>ownershipLine(x),'',x=>NaN], [tr('completion'),x=>x.CompletionDate||stageLbl(x.Stage),'',x=>NaN], [tr('why'),x=>fld(x,'WhyThisObject'),'',x=>NaN], [tr('redFlags'),x=>fld(x,'RedFlags'),'',x=>NaN] ]; const bestIndex=(row)=>{const vals=items.map(row[4]);let bi=-1,bv=null;vals.forEach((v,i)=>{if(isNaN(v))return;if(bv===null||(row[2]==='max'?v>bv:v<bv)){bv=v;bi=i;}});return bi;}; app.innerHTML=`<section class="panel"><div class="actions no-print" style="margin-bottom:12px"><button class="smallBtn" onclick="backCatalog()">${tr('backCatalog')}</button><button class="smallBtn" onclick="window.print()">${tr('printPdf')}</button></div><h2>${tr('compare')}</h2><div class="tableBox"><table><tr><th></th>${items.map(x=>`<th>${escapeHtml(x.Project)}<br><span class="note">${escapeHtml(x.Location)} · ${escapeHtml(x.Bedrooms)}BR</span></th>`).join('')}</tr>${rows.map(row=>{const bi=bestIndex(row);return `<tr><th>${row[0]}</th>${items.map((x,i)=>`<td class="${i===bi?'best':''}">${escapeHtml(row[1](x))}</td>`).join('')}</tr>`}).join('')}</table></div></section>`; renderCompareBar();}
+function renderMemo(id){const item=getItem(id); if(!item){backCatalog();return;} app.innerHTML=`<section class="memo panel"><div class="actions no-print" style="margin-bottom:12px"><button class="smallBtn" onclick="renderDetail('${item.ID}')">← ${tr('card')}</button><button class="smallBtn" onclick="window.print()">${tr('downloadPdf')}</button></div><div class="memoHeader"><div><h1>${escapeHtml(item.Project)} · ${escapeHtml(item.Bedrooms||'')}BR</h1><div class="note">${escapeHtml(item.Location)} · ${escapeHtml(item.Type)} · ID ${escapeHtml(item.ID)}</div></div><div class="memoPrice">${money(item.price)}</div></div><h3 class="sectionTitle">${tr('investmentSnapshot')}</h3><div class="factGrid">${detailFacts(item).map(f=>`<div class="fact"><b>${escapeHtml(f[0])}</b><span>${escapeHtml(f[1])}</span></div>`).join('')}</div><h3 class="sectionTitle">${tr('roiScenarios')}</h3><div class="factGrid"><div class="fact"><b>${percent(item.developerROI)}</b><span>${tr('developerRoi')}</span></div><div class="fact"><b>${percent(item.modelROI)}</b><span>${tr('modelRoi')}</span></div><div class="fact"><b>${percent(item.conservativeROI)}</b><span>${tr('conservativeRoi')}</span></div><div class="fact"><b>${escapeHtml(item.ROISource||'—')}</b><span>${tr('roiSource')}</span></div></div><h3 class="sectionTitle">${tr('why')}</h3><div class="textBox good">${escapeHtml(fld(item,'WhyThisObject'))}</div><h3 class="sectionTitle">${tr('fits')}</h3><div class="textBox">${escapeHtml(fld(item,'FitsClient'))}</div><h3 class="sectionTitle">${tr('ownershipStructure')}</h3><div class="textBox"><b>${escapeHtml(item.OwnershipDetail||ownLbl(item.OwnershipType))}</b><p>${escapeHtml(I18N.ownershipNote(item))}</p></div><h3 class="sectionTitle">${tr('redFlags')}</h3><div class="textBox warn">${escapeHtml(fld(item,'RedFlags'))}</div><h3 class="sectionTitle">${tr('nextStep')}</h3><div class="textBox">${I18N.lang()==='en'?'Confirm availability, request the legal package, check reservation terms and prepare the DD checklist before deposit.':'Подтвердить наличие, запросить юридический пакет, проверить условия брони и подготовить DD checklist до депозита.'}</div><div class="memoFooter">${I18N.lang()==='en'?'Not a public offer or investment advice. Figures must be verified before transaction.':'Не является публичной офертой или инвестиционной рекомендацией. Цифры нужно проверить до сделки.'} ${escapeHtml(item.UpdatedAt||'—')}</div></section>`;}
+function route(){const h=decodeURIComponent(location.hash.replace(/^#/,'')); if(h.startsWith('o/'))return renderDetail(h.slice(2)); if(h.startsWith('compare/'))return renderCompare(h.slice(8).split(',')); if(h.startsWith('memo/'))return renderMemo(h.slice(5)); renderCatalog();}
+async function init(){DATA=await loadListings(); fillFilters(); const ids=idsFromUrl(); if(ids.length){selected=ids.filter(id=>DATA.some(x=>x.ID===id));} $('#contactBtn').href=(window.APP_CONFIG&&window.APP_CONFIG.CONTACT_URL)||'#'; document.querySelectorAll('.modeSwitch button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.modeSwitch button').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); mode=btn.dataset.mode; renderCatalog();})); ['#locationFilter','#typeFilter','#budgetFilter','#statusFilter','#sortSelect'].forEach(s=>$(s).addEventListener('change',renderCatalog)); $('#resetBtn').addEventListener('click',()=>{['#locationFilter','#typeFilter','#budgetFilter'].forEach(s=>$(s).value=''); $('#statusFilter').value='active'; $('#sortSelect').value='score'; renderCatalog();}); $('#createShortlistBtn').addEventListener('click',createShortlistLink); $('#compareBtn').addEventListener('click',goCompare); $('#clearCompareBtn').addEventListener('click',clearCompare); window.addEventListener('hashchange',route); window.onLanguageChange=()=>{I18N.translateStatic(); fillFilters(); route();}; route();}
 init().catch(e=>{app.innerHTML=`<div class="panel">Ошибка загрузки данных: ${escapeHtml(e.message)}</div>`;});
