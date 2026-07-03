@@ -19,6 +19,7 @@ function projectImageCandidates(item){
   return [
     `photos/projects/${prefix}.jpg`,
     `photos/projects/${project}.jpg`,
+    `photos/${prefix}.jpg`,
     `photos/${prefix}-cover.jpg`,
     `photos/${prefix}-1.jpg`,
     `photos/${id}-1.jpg`
@@ -29,6 +30,7 @@ function unitImageCandidates(item,index=1){
   return [
     `photos/units/${id}-${index}.jpg`,
     `photos/${id}-${index}.jpg`,
+    `photos/${id}.jpg`,
     `photos/units/${prefix}-${br}BR-${index}.jpg`,
     `photos/${prefix}-${br}BR-${index}.jpg`,
     `photos/projects/${prefix}-${index}.jpg`,
