@@ -12,9 +12,41 @@ const statusLbl=s=>window.I18N?I18N.statusLabel(s):s;
 const stageLbl=s=>window.I18N?I18N.stageLabel(s):s;
 const ownLbl=s=>window.I18N?I18N.ownershipLabel(s):s;
 
-function photoUrl(item, index=1){
-  const prefix=item.PhotoPrefix || String(item.ID||'').split('-')[0];
-  return `photos/${prefix}-${index}.jpg`;
+function slug(s){return String(s||'').toLowerCase().replace(/[^a-z0-9а-яё]+/gi,'-').replace(/^-+|-+$/g,'');}
+function photoPrefix(item){return item.PhotoPrefix || String(item.ID||'').split('-')[0];}
+function projectImageCandidates(item){
+  const prefix=photoPrefix(item), project=slug(item.Project), id=item.ID;
+  return [
+    `photos/projects/${prefix}.jpg`,
+    `photos/projects/${project}.jpg`,
+    `photos/${prefix}-cover.jpg`,
+    `photos/${prefix}-1.jpg`,
+    `photos/${id}-1.jpg`
+  ];
+}
+function unitImageCandidates(item,index=1){
+  const prefix=photoPrefix(item), project=slug(item.Project), id=item.ID, br=String(item.Bedrooms||'').replace(/\.0$/,'');
+  return [
+    `photos/units/${id}-${index}.jpg`,
+    `photos/${id}-${index}.jpg`,
+    `photos/units/${prefix}-${br}BR-${index}.jpg`,
+    `photos/${prefix}-${br}BR-${index}.jpg`,
+    `photos/projects/${prefix}-${index}.jpg`,
+    `photos/projects/${project}-${index}.jpg`,
+    `photos/${prefix}-${index}.jpg`
+  ];
+}
+function imgTag(candidates, alt, cls=''){
+  const uniq=[...new Set(candidates.filter(Boolean))];
+  const first=uniq.shift()||'';
+  return `<img class="${cls}" src="${first}" data-fallbacks="${escapeHtml(uniq.join('|'))}" loading="lazy" onerror="nextImage(this)" alt="${escapeHtml(alt||'Property photo')}" />`;
+}
+function nextImage(img){
+  const list=(img.dataset.fallbacks||'').split('|').filter(Boolean);
+  if(list.length){ img.dataset.fallbacks=list.slice(1).join('|'); img.src=list[0]; return; }
+  img.style.display='none';
+  const box=img.closest('.media,.galleryHero,.thumb');
+  if(box) box.classList.add('imgMissing');
 }
 function unique(arr){return [...new Set(arr.filter(Boolean))].sort();}
 function idsFromUrl(){const p=new URLSearchParams(location.search).get('ids');return p?p.split(',').map(x=>x.trim()).filter(Boolean):[];}
@@ -69,7 +101,7 @@ function projectCard(g){
   const brLine=stats.brs.length>1?`${stats.brs.join(' / ')}BR`:`${stats.brs[0]||item.Bedrooms||'—'}BR`;
   return `<article class="card projectCard">
     <div class="media" onclick="openDetail('${item.ID}')">
-      <img src="${photoUrl(item,1)}" loading="lazy" onerror="this.style.display='none'" alt="${escapeHtml(item.Project)}" />
+      ${imgTag(projectImageCandidates(item), item.Project)}
       <span class="badge">${escapeHtml(stageLbl(item.Stage||'Stage'))}</span>
       <span class="statusBadge ${escapeHtml(item.Status||'Available')}">${escapeHtml(statusLbl(item.Status||'Available'))}</span>
       <span class="badge right">★ ${sc}</span>
@@ -118,7 +150,7 @@ function detailUnitSwitch(item){const units=getProjectItems(item); if(units.leng
 function renderDetail(id){const item=getItem(id); if(!item){backCatalog(); return;} app.innerHTML=`<section class="detail">
   <div class="actions no-print" style="margin-bottom:12px"><button class="smallBtn" onclick="backCatalog()">${tr('backCatalog')}</button><button class="smallBtn" onclick="openMemo('${item.ID}')">${tr('memo')}</button><button class="smallBtn" onclick="window.print()">${tr('printPdf')}</button>${item.PresentationURL?`<a class="smallBtn" href="${escapeHtml(item.PresentationURL)}" target="_blank">${tr('presentation')}</a>`:''}</div>
   ${detailUnitSwitch(item)}
-  <div class="detailHero"><div class="galleryHero"><img src="${photoUrl(item,1)}" onerror="this.style.display='none'" /></div><div class="detailHead panel"><div class="loc">${escapeHtml(item.Location)} · ${escapeHtml(item.Type)}</div><h1>${escapeHtml(title(item))}</h1><div class="detailPrice">${money(item.price)}</div><div class="chips" style="margin:10px 0"><span class="chip">★ ${tr('investorScore')} ${computedInvestorScore(item)}</span><span class="chip">${tr('legal')} ${item.LegalScore||'—'}</span><span class="chip">${escapeHtml(ownLbl(item.OwnershipType||'Ownership'))}</span></div><div class="roiRow"><div class="roiBox"><b>${percent(item.developerROI)}</b><span>${tr('developerRoi')}</span></div><div class="roiBox"><b>${percent(item.modelROI)}</b><span>${tr('modelRoi')}</span></div><div class="roiBox"><b>${percent(item.conservativeROI)}</b><span>${tr('conservativeRoi')}</span></div></div></div></div>
+  <div class="detailHero"><div class="galleryBlock"><div class="galleryHero">${imgTag(unitImageCandidates(item,1), title(item))}</div><div class="thumbRow">${[1,2,3,4].map(i=>`<div class="thumb">${imgTag(unitImageCandidates(item,i), `${title(item)} photo ${i}`)}</div>`).join('')}</div></div><div class="detailHead panel"><div class="loc">${escapeHtml(item.Location)} · ${escapeHtml(item.Type)}</div><h1>${escapeHtml(title(item))}</h1><div class="detailPrice">${money(item.price)}</div><div class="chips" style="margin:10px 0"><span class="chip">★ ${tr('investorScore')} ${computedInvestorScore(item)}</span><span class="chip">${tr('legal')} ${item.LegalScore||'—'}</span><span class="chip">${escapeHtml(ownLbl(item.OwnershipType||'Ownership'))}</span></div><div class="roiRow"><div class="roiBox"><b>${percent(item.developerROI)}</b><span>${tr('developerRoi')}</span></div><div class="roiBox"><b>${percent(item.modelROI)}</b><span>${tr('modelRoi')}</span></div><div class="roiBox"><b>${percent(item.conservativeROI)}</b><span>${tr('conservativeRoi')}</span></div></div></div></div>
   <h3 class="sectionTitle">${tr('keyParams')}</h3><div class="factGrid">${detailFacts(item).map(f=>`<div class="fact"><b>${escapeHtml(f[0])}</b><span>${escapeHtml(f[1])}</span></div>`).join('')}</div>
   <h3 class="sectionTitle">${tr('conclusion')}</h3><div class="twoCols"><div class="textBox good"><b>${tr('why')}</b><p>${escapeHtml(fld(item,'WhyThisObject'))}</p></div><div class="textBox"><b>${tr('fits')}</b><p>${escapeHtml(fld(item,'FitsClient'))}</p></div></div>
   <h3 class="sectionTitle">${tr('ownershipStructure')}</h3><div class="textBox"><b>${escapeHtml(item.OwnershipDetail||ownLbl(item.OwnershipType))}</b><p>${escapeHtml(I18N.ownershipNote(item))}</p></div>

@@ -35,3 +35,9 @@
 ## v7 fix
 
 Language switch moved inside the main navigation as RU / EN buttons. This avoids browser/GitHub Pages layout issues where the separate language block was not visible. Assets use `?v=7` cache busting.
+
+## Photos v8
+
+Catalog cards use project cover images from `photos/projects/<PhotoPrefix>.jpg`.
+Unit detail pages use unit images from `photos/units/<ID>-1.jpg`, `-2.jpg`, etc.
+See `docs/PHOTO_STRUCTURE_V8.md`.
