@@ -113,21 +113,21 @@ function projectCard(g){
       <div class="title" onclick="openDetail('${item.ID}')">${escapeHtml(title(item,true))}</div>
       <div class="price">${tr('fromPrice')} ${money(stats.minPrice)}</div>
       ${unitButtons(g,item)}
-      <div class="chips">
+      <div class="chips compactChips">
         <span class="chip">${escapeHtml(ownLbl(item.OwnershipType||'Ownership'))}</span>
         <span class="chip">${escapeHtml(item.PaymentPlan||tr('paymentPlan'))}</span>
-        <span class="chip">${escapeHtml(modeText(item))}</span>
       </div>
-      <div class="roiRow">
-        <div class="roiBox"><b>${percent(item.developerROI)}</b><span>${tr('developerRoi')}</span></div>
-        <div class="roiBox"><b>${percent(item.modelROI)}</b><span>${tr('modelRoi')}</span></div>
-        <div class="roiBox"><b>${percent(item.conservativeROI)}</b><span>${tr('conservative')}</span></div>
+      <div class="catalogMetaPill">${escapeHtml(modeText(item))}</div>
+      <div class="roiRow compactRoi">
+        <div class="roiBox"><b>${percent(item.developerROI)}</b><span>Dev</span></div>
+        <div class="roiBox"><b>${percent(item.modelROI)}</b><span>Model</span></div>
+        <div class="roiBox"><b>${percent(item.conservativeROI)}</b><span>Cons.</span></div>
       </div>
-      <div class="why"><b>${tr('whyShort')}:</b> ${escapeHtml(fld(item,'WhyThisObject'))}</div>
-      <div class="redFlags"><b>${tr('redFlags')}:</b> ${escapeHtml(fld(item,'RedFlags'))}</div>
-      <div class="legalNote"><b>${tr('ownership')}:</b> ${escapeHtml(ownershipLine(item))}</div>
-      <div class="checkLine"><input type="checkbox" ${checked} onchange="toggleSelect('${item.ID}')" /> ${tr('addShortlist')}</div>
-      <div class="actions"><button class="smallBtn" onclick="openDetail('${item.ID}')">${tr('card')}</button><button class="smallBtn" onclick="openMemo('${item.ID}')">${tr('memo')}</button></div>
+      <div class="catalogTeaser"><b>${tr('whyShort')}:</b> ${escapeHtml(fld(item,'WhyThisObject'))}</div>
+      <div class="catalogFooter">
+        <label class="checkLine compactCheck"><input type="checkbox" ${checked} onchange="toggleSelect('${item.ID}')" /> ${tr('addShortlist')}</label>
+        <div class="actions compactActions"><button class="smallBtn" onclick="openDetail('${item.ID}')">${tr('card')}</button><button class="smallBtn" onclick="openMemo('${item.ID}')">${tr('memo')}</button></div>
+      </div>
     </div>
   </article>`;
 }

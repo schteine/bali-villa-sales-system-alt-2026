@@ -49,3 +49,11 @@ See `docs/PHOTO_STRUCTURE_V8.md`.
 - Фото теперь ищутся по расширенному fallback: `photos/projects/PREFIX.jpg`, `photos/PREFIX.jpg`, `photos/PREFIX-1.jpg`, `photos/units/ID-1.jpg`, `photos/ID-1.jpg`.
 - В архив v9 намеренно не включается папка `photos/`, чтобы при копировании не затереть уже загруженные изображения.
 
+
+
+## v10
+
+- Настоящий compact mode для карточек каталога.
+- Chips, ROI boxes и unit picker уменьшены.
+- В каталоге скрыты подробные блоки red flags / ownership; они остаются внутри карточки проекта.
+- Каталог теперь работает как teaser, а детальная карточка — как investment memo.
