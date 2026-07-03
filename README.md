@@ -30,3 +30,8 @@
 `OA-1.jpg`, `OA-2.jpg`, `UE-1.jpg`, `UE-2.jpg`.
 
 Первое фото с `-1.jpg` используется как главное фото проекта.
+
+
+## v7 fix
+
+Language switch moved inside the main navigation as RU / EN buttons. This avoids browser/GitHub Pages layout issues where the separate language block was not visible. Assets use `?v=7` cache busting.
