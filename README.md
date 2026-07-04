@@ -104,3 +104,9 @@ See `docs/PHOTO_STRUCTURE_V8.md`.
 - Catalog now shows all available project cards for internal client walkthroughs.
 - Personal shortlists remain available via shortlist selection/link flow.
 - New cache-safe assets: `assets/js/app.v18.js`, `assets/css/styles.v18.css`.
+
+
+## v19 Premium polish
+- Keeps all catalog objects visible for internal client walkthroughs.
+- Adds premium hero stats, more editorial card spacing, sticky deal-room actions, mobile CTA, refined gallery/lightbox styling, reduced-motion support and stronger responsive behavior.
+- Uses cache-safe asset paths: `assets/css/styles.v19.css` and `assets/js/app.v19.js`.
