@@ -57,3 +57,14 @@ See `docs/PHOTO_STRUCTURE_V8.md`.
 - Chips, ROI boxes и unit picker уменьшены.
 - В каталоге скрыты подробные блоки red flags / ownership; они остаются внутри карточки проекта.
 - Каталог теперь работает как teaser, а детальная карточка — как investment memo.
+
+
+## v11 — Gallery fix
+- Detail gallery thumbnails are clickable.
+- Added previous/next gallery arrows.
+- Expanded detail thumbnails to 6 images where available.
+
+
+## v12
+- Fixed detail gallery interactions with delegated JS, clickable thumbnails, arrow navigation, keyboard navigation, and fullscreen lightbox.
+- Bumped asset cache version to v12.

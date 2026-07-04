@@ -50,6 +50,113 @@ function nextImage(img){
   const box=img.closest('.media,.galleryHero,.thumb');
   if(box) box.classList.add('imgMissing');
 }
+
+function galleryVisibleThumbs(block){
+  return [...block.querySelectorAll('.thumb')].filter(t=>{
+    const img=t.querySelector('img');
+    return img && img.style.display!=='none' && img.src;
+  });
+}
+function setGalleryImage(el){
+  const block=el?.closest?.('.galleryBlock');
+  if(!block) return;
+  const img=el.querySelector('img');
+  const hero=block.querySelector('.galleryHero img');
+  if(!img || !hero || img.style.display==='none') return;
+  hero.src=img.currentSrc || img.src;
+  hero.dataset.fallbacks='';
+  hero.alt=img.alt || 'Property photo';
+  block.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+function moveGallery(step){
+  const block=document.querySelector('.galleryBlock');
+  if(!block) return;
+  const thumbs=galleryVisibleThumbs(block);
+  if(!thumbs.length) return;
+  let i=thumbs.findIndex(t=>t.classList.contains('active'));
+  if(i<0) i=0;
+  setGalleryImage(thumbs[(i+step+thumbs.length)%thumbs.length]);
+}
+function galleryIndex(block){
+  const thumbs=galleryVisibleThumbs(block);
+  const active=thumbs.findIndex(t=>t.classList.contains('active'));
+  return {thumbs, index: active>=0?active:0};
+}
+function openGalleryLightbox(){
+  const block=document.querySelector('.galleryBlock');
+  if(!block) return;
+  const {thumbs,index}=galleryIndex(block);
+  if(!thumbs.length) return;
+  const urls=thumbs.map(t=>{const img=t.querySelector('img'); return img.currentSrc || img.src;});
+  window.__lightbox={urls,index};
+  renderLightbox();
+}
+function renderLightbox(){
+  const state=window.__lightbox;
+  if(!state || !state.urls?.length) return;
+  const url=state.urls[state.index];
+  let lb=document.getElementById('galleryLightbox');
+  if(!lb){
+    lb=document.createElement('div');
+    lb.id='galleryLightbox';
+    document.body.appendChild(lb);
+  }
+  lb.innerHTML=`<div class="lightboxBackdrop" onclick="closeGalleryLightbox()"></div>
+    <button class="lightboxClose" onclick="closeGalleryLightbox()" aria-label="Close">×</button>
+    <button class="lightboxNav lightboxPrev" onclick="event.stopPropagation();moveLightbox(-1)" aria-label="Previous">‹</button>
+    <img class="lightboxImg" src="${escapeHtml(url)}" alt="Property photo">
+    <button class="lightboxNav lightboxNext" onclick="event.stopPropagation();moveLightbox(1)" aria-label="Next">›</button>
+    <div class="lightboxCounter">${state.index+1} / ${state.urls.length}</div>`;
+  lb.classList.add('open');
+  document.body.classList.add('noScroll');
+}
+function moveLightbox(step){
+  const state=window.__lightbox;
+  if(!state || !state.urls?.length) return;
+  state.index=(state.index+step+state.urls.length)%state.urls.length;
+  renderLightbox();
+}
+function closeGalleryLightbox(){
+  const lb=document.getElementById('galleryLightbox');
+  if(lb) lb.classList.remove('open');
+  document.body.classList.remove('noScroll');
+}
+function initGalleryInteractions(){
+  const block=document.querySelector('.galleryBlock');
+  if(!block) return;
+  block.querySelectorAll('.thumb').forEach((thumb,i)=>{
+    thumb.setAttribute('role','button');
+    thumb.setAttribute('tabindex','0');
+    thumb.onclick=(e)=>{e.preventDefault(); e.stopPropagation(); setGalleryImage(thumb);};
+    thumb.onkeydown=(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault(); setGalleryImage(thumb);}};
+  });
+  const hero=block.querySelector('.galleryHero');
+  if(hero){
+    hero.style.cursor='zoom-in';
+    hero.onclick=(e)=>{
+      if(e.target.closest('button')) return;
+      openGalleryLightbox();
+    };
+  }
+}
+window.setGalleryImage=setGalleryImage;
+window.moveGallery=moveGallery;
+window.openGalleryLightbox=openGalleryLightbox;
+window.closeGalleryLightbox=closeGalleryLightbox;
+window.moveLightbox=moveLightbox;
+window.addEventListener('keydown',e=>{
+  const lb=document.getElementById('galleryLightbox');
+  if(lb?.classList.contains('open')){
+    if(e.key==='Escape') closeGalleryLightbox();
+    if(e.key==='ArrowLeft') moveLightbox(-1);
+    if(e.key==='ArrowRight') moveLightbox(1);
+  }else if(document.querySelector('.galleryBlock')){
+    if(e.key==='ArrowLeft') moveGallery(-1);
+    if(e.key==='ArrowRight') moveGallery(1);
+  }
+});
+
 function unique(arr){return [...new Set(arr.filter(Boolean))].sort();}
 function idsFromUrl(){const p=new URLSearchParams(location.search).get('ids');return p?p.split(',').map(x=>x.trim()).filter(Boolean):[];}
 function applyClientIds(list){const ids=idsFromUrl(); return ids.length?list.filter(x=>ids.includes(x.ID)):list;}
@@ -152,14 +259,14 @@ function detailUnitSwitch(item){const units=getProjectItems(item); if(units.leng
 function renderDetail(id){const item=getItem(id); if(!item){backCatalog(); return;} app.innerHTML=`<section class="detail">
   <div class="actions no-print" style="margin-bottom:12px"><button class="smallBtn" onclick="backCatalog()">${tr('backCatalog')}</button><button class="smallBtn" onclick="openMemo('${item.ID}')">${tr('memo')}</button><button class="smallBtn" onclick="window.print()">${tr('printPdf')}</button>${item.PresentationURL?`<a class="smallBtn" href="${escapeHtml(item.PresentationURL)}" target="_blank">${tr('presentation')}</a>`:''}</div>
   ${detailUnitSwitch(item)}
-  <div class="detailHero"><div class="galleryBlock"><div class="galleryHero">${imgTag(unitImageCandidates(item,1), title(item))}</div><div class="thumbRow">${[1,2,3,4].map(i=>`<div class="thumb">${imgTag(unitImageCandidates(item,i), `${title(item)} photo ${i}`)}</div>`).join('')}</div></div><div class="detailHead panel"><div class="loc">${escapeHtml(item.Location)} · ${escapeHtml(item.Type)}</div><h1>${escapeHtml(title(item))}</h1><div class="detailPrice">${money(item.price)}</div><div class="chips" style="margin:10px 0"><span class="chip">★ ${tr('investorScore')} ${computedInvestorScore(item)}</span><span class="chip">${tr('legal')} ${item.LegalScore||'—'}</span><span class="chip">${escapeHtml(ownLbl(item.OwnershipType||'Ownership'))}</span></div><div class="roiRow"><div class="roiBox"><b>${percent(item.developerROI)}</b><span>${tr('developerRoi')}</span></div><div class="roiBox"><b>${percent(item.modelROI)}</b><span>${tr('modelRoi')}</span></div><div class="roiBox"><b>${percent(item.conservativeROI)}</b><span>${tr('conservativeRoi')}</span></div></div></div></div>
+  <div class="detailHero"><div class="galleryBlock"><div class="galleryHero"><button class="galleryNav galleryPrev no-print" onclick="moveGallery(-1)" aria-label="Previous photo">‹</button>${imgTag(unitImageCandidates(item,1), title(item))}<button class="galleryNav galleryNext no-print" onclick="moveGallery(1)" aria-label="Next photo">›</button></div><div class="thumbRow">${[1,2,3,4,5,6].map(i=>`<div class="thumb ${i===1?'active':''}" onclick="setGalleryImage(this)">${imgTag(unitImageCandidates(item,i), `${title(item)} photo ${i}`)}</div>`).join('')}</div></div><div class="detailHead panel"><div class="loc">${escapeHtml(item.Location)} · ${escapeHtml(item.Type)}</div><h1>${escapeHtml(title(item))}</h1><div class="detailPrice">${money(item.price)}</div><div class="chips" style="margin:10px 0"><span class="chip">★ ${tr('investorScore')} ${computedInvestorScore(item)}</span><span class="chip">${tr('legal')} ${item.LegalScore||'—'}</span><span class="chip">${escapeHtml(ownLbl(item.OwnershipType||'Ownership'))}</span></div><div class="roiRow"><div class="roiBox"><b>${percent(item.developerROI)}</b><span>${tr('developerRoi')}</span></div><div class="roiBox"><b>${percent(item.modelROI)}</b><span>${tr('modelRoi')}</span></div><div class="roiBox"><b>${percent(item.conservativeROI)}</b><span>${tr('conservativeRoi')}</span></div></div></div></div>
   <h3 class="sectionTitle">${tr('keyParams')}</h3><div class="factGrid">${detailFacts(item).map(f=>`<div class="fact"><b>${escapeHtml(f[0])}</b><span>${escapeHtml(f[1])}</span></div>`).join('')}</div>
   <h3 class="sectionTitle">${tr('conclusion')}</h3><div class="twoCols"><div class="textBox good"><b>${tr('why')}</b><p>${escapeHtml(fld(item,'WhyThisObject'))}</p></div><div class="textBox"><b>${tr('fits')}</b><p>${escapeHtml(fld(item,'FitsClient'))}</p></div></div>
   <h3 class="sectionTitle">${tr('ownershipStructure')}</h3><div class="textBox"><b>${escapeHtml(item.OwnershipDetail||ownLbl(item.OwnershipType))}</b><p>${escapeHtml(I18N.ownershipNote(item))}</p></div>
   <h3 class="sectionTitle">${tr('redFlags')}</h3><div class="textBox warn">${escapeHtml(fld(item,'RedFlags'))}</div>
   <h3 class="sectionTitle">${tr('salesNote')}</h3><div class="textBox">${escapeHtml(fld(item,'SalesNote'))}</div>
-</section>`; renderCompareBar();}
-function renderCompare(ids){const items=ids.map(getItem).filter(Boolean); if(items.length<2){backCatalog();return;} const rows=[ [tr('price'),x=>money(x.price),'min',x=>x.price], [tr('pricePerSqm'),x=>isNaN(x.pricePerSqm)?'—':money(x.pricePerSqm),'min',x=>x.pricePerSqm], [tr('developerRoi'),x=>percent(x.developerROI),'max',x=>x.developerROI], [tr('modelRoi'),x=>percent(x.modelROI),'max',x=>x.modelROI], [tr('conservativeRoi'),x=>percent(x.conservativeROI),'max',x=>x.conservativeROI], [tr('investorScore'),x=>computedInvestorScore(x),'max',x=>computedInvestorScore(x)], [tr('legal'),x=>x.LegalScore||'—','max',x=>num(x.LegalScore)], [tr('ownership'),x=>ownershipLine(x),'',x=>NaN], [tr('completion'),x=>x.CompletionDate||stageLbl(x.Stage),'',x=>NaN], [tr('why'),x=>fld(x,'WhyThisObject'),'',x=>NaN], [tr('redFlags'),x=>fld(x,'RedFlags'),'',x=>NaN] ]; const bestIndex=(row)=>{const vals=items.map(row[4]);let bi=-1,bv=null;vals.forEach((v,i)=>{if(isNaN(v))return;if(bv===null||(row[2]==='max'?v>bv:v<bv)){bv=v;bi=i;}});return bi;}; app.innerHTML=`<section class="panel"><div class="actions no-print" style="margin-bottom:12px"><button class="smallBtn" onclick="backCatalog()">${tr('backCatalog')}</button><button class="smallBtn" onclick="window.print()">${tr('printPdf')}</button></div><h2>${tr('compare')}</h2><div class="tableBox"><table><tr><th></th>${items.map(x=>`<th>${escapeHtml(x.Project)}<br><span class="note">${escapeHtml(x.Location)} · ${escapeHtml(x.Bedrooms)}BR</span></th>`).join('')}</tr>${rows.map(row=>{const bi=bestIndex(row);return `<tr><th>${row[0]}</th>${items.map((x,i)=>`<td class="${i===bi?'best':''}">${escapeHtml(row[1](x))}</td>`).join('')}</tr>`}).join('')}</table></div></section>`; renderCompareBar();}
+</section>`; initGalleryInteractions(); renderCompareBar();}
+function renderCompare(ids){const items=ids.map(getItem).filter(Boolean); if(items.length<2){backCatalog();return;} const rows=[ [tr('price'),x=>money(x.price),'min',x=>x.price], [tr('pricePerSqm'),x=>isNaN(x.pricePerSqm)?'—':money(x.pricePerSqm),'min',x=>x.pricePerSqm], [tr('developerRoi'),x=>percent(x.developerROI),'max',x=>x.developerROI], [tr('modelRoi'),x=>percent(x.modelROI),'max',x=>x.modelROI], [tr('conservativeRoi'),x=>percent(x.conservativeROI),'max',x=>x.conservativeROI], [tr('investorScore'),x=>computedInvestorScore(x),'max',x=>computedInvestorScore(x)], [tr('legal'),x=>x.LegalScore||'—','max',x=>num(x.LegalScore)], [tr('ownership'),x=>ownershipLine(x),'',x=>NaN], [tr('completion'),x=>x.CompletionDate||stageLbl(x.Stage),'',x=>NaN], [tr('why'),x=>fld(x,'WhyThisObject'),'',x=>NaN], [tr('redFlags'),x=>fld(x,'RedFlags'),'',x=>NaN] ]; const bestIndex=(row)=>{const vals=items.map(row[4]);let bi=-1,bv=null;vals.forEach((v,i)=>{if(isNaN(v))return;if(bv===null||(row[2]==='max'?v>bv:v<bv)){bv=v;bi=i;}});return bi;}; app.innerHTML=`<section class="panel"><div class="actions no-print" style="margin-bottom:12px"><button class="smallBtn" onclick="backCatalog()">${tr('backCatalog')}</button><button class="smallBtn" onclick="window.print()">${tr('printPdf')}</button></div><h2>${tr('compare')}</h2><div class="tableBox"><table><tr><th></th>${items.map(x=>`<th>${escapeHtml(x.Project)}<br><span class="note">${escapeHtml(x.Location)} · ${escapeHtml(x.Bedrooms)}BR</span></th>`).join('')}</tr>${rows.map(row=>{const bi=bestIndex(row);return `<tr><th>${row[0]}</th>${items.map((x,i)=>`<td class="${i===bi?'best':''}">${escapeHtml(row[1](x))}</td>`).join('')}</tr>`}).join('')}</table></div></section>`; initGalleryInteractions(); renderCompareBar();}
 function renderMemo(id){const item=getItem(id); if(!item){backCatalog();return;} app.innerHTML=`<section class="memo panel"><div class="actions no-print" style="margin-bottom:12px"><button class="smallBtn" onclick="renderDetail('${item.ID}')">← ${tr('card')}</button><button class="smallBtn" onclick="window.print()">${tr('downloadPdf')}</button></div><div class="memoHeader"><div><h1>${escapeHtml(item.Project)} · ${escapeHtml(item.Bedrooms||'')}BR</h1><div class="note">${escapeHtml(item.Location)} · ${escapeHtml(item.Type)} · ID ${escapeHtml(item.ID)}</div></div><div class="memoPrice">${money(item.price)}</div></div><h3 class="sectionTitle">${tr('investmentSnapshot')}</h3><div class="factGrid">${detailFacts(item).map(f=>`<div class="fact"><b>${escapeHtml(f[0])}</b><span>${escapeHtml(f[1])}</span></div>`).join('')}</div><h3 class="sectionTitle">${tr('roiScenarios')}</h3><div class="factGrid"><div class="fact"><b>${percent(item.developerROI)}</b><span>${tr('developerRoi')}</span></div><div class="fact"><b>${percent(item.modelROI)}</b><span>${tr('modelRoi')}</span></div><div class="fact"><b>${percent(item.conservativeROI)}</b><span>${tr('conservativeRoi')}</span></div><div class="fact"><b>${escapeHtml(item.ROISource||'—')}</b><span>${tr('roiSource')}</span></div></div><h3 class="sectionTitle">${tr('why')}</h3><div class="textBox good">${escapeHtml(fld(item,'WhyThisObject'))}</div><h3 class="sectionTitle">${tr('fits')}</h3><div class="textBox">${escapeHtml(fld(item,'FitsClient'))}</div><h3 class="sectionTitle">${tr('ownershipStructure')}</h3><div class="textBox"><b>${escapeHtml(item.OwnershipDetail||ownLbl(item.OwnershipType))}</b><p>${escapeHtml(I18N.ownershipNote(item))}</p></div><h3 class="sectionTitle">${tr('redFlags')}</h3><div class="textBox warn">${escapeHtml(fld(item,'RedFlags'))}</div><h3 class="sectionTitle">${tr('nextStep')}</h3><div class="textBox">${I18N.lang()==='en'?'Confirm availability, request the legal package, check reservation terms and prepare the DD checklist before deposit.':'Подтвердить наличие, запросить юридический пакет, проверить условия брони и подготовить DD checklist до депозита.'}</div><div class="memoFooter">${I18N.lang()==='en'?'Not a public offer or investment advice. Figures must be verified before transaction.':'Не является публичной офертой или инвестиционной рекомендацией. Цифры нужно проверить до сделки.'} ${escapeHtml(item.UpdatedAt||'—')}</div></section>`;}
 function route(){const h=decodeURIComponent(location.hash.replace(/^#/,'')); if(h.startsWith('o/'))return renderDetail(h.slice(2)); if(h.startsWith('compare/'))return renderCompare(h.slice(8).split(',')); if(h.startsWith('memo/'))return renderMemo(h.slice(5)); renderCatalog();}
 async function init(){DATA=await loadListings(); fillFilters(); const ids=idsFromUrl(); if(ids.length){selected=ids.filter(id=>DATA.some(x=>x.ID===id));} $('#contactBtn').href=(window.APP_CONFIG&&window.APP_CONFIG.CONTACT_URL)||'#'; document.querySelectorAll('.modeSwitch button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.modeSwitch button').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); mode=btn.dataset.mode; renderCatalog();})); ['#locationFilter','#typeFilter','#budgetFilter','#statusFilter','#sortSelect'].forEach(s=>$(s).addEventListener('change',renderCatalog)); $('#resetBtn').addEventListener('click',()=>{['#locationFilter','#typeFilter','#budgetFilter'].forEach(s=>$(s).value=''); $('#statusFilter').value='active'; $('#sortSelect').value='score'; renderCatalog();}); $('#createShortlistBtn').addEventListener('click',createShortlistLink); $('#compareBtn').addEventListener('click',goCompare); $('#clearCompareBtn').addEventListener('click',clearCompare); window.addEventListener('hashchange',route); window.onLanguageChange=()=>{I18N.translateStatic(); fillFilters(); route();}; route();}
