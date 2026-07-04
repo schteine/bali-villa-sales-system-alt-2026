@@ -110,3 +110,12 @@ See `docs/PHOTO_STRUCTURE_V8.md`.
 - Keeps all catalog objects visible for internal client walkthroughs.
 - Adds premium hero stats, more editorial card spacing, sticky deal-room actions, mobile CTA, refined gallery/lightbox styling, reduced-motion support and stronger responsive behavior.
 - Uses cache-safe asset paths: `assets/css/styles.v19.css` and `assets/js/app.v19.js`.
+
+## v20 compact premium polish
+- Top brand bar reduced.
+- Sticky filters made narrower to save screen height.
+- Duplicate intro heading removed.
+- Premium stats expanded to 5: projects, entry ticket, max ticket, best checked ROI, best stress case.
+- Project card typography softened: lighter project title, softer price, smaller ROI block.
+- ROI percentages now show one decimal point consistently.
+- Asset paths updated to `styles.v20.css` and `app.v20.js`.

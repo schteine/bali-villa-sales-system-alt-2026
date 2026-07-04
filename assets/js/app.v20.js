@@ -411,17 +411,20 @@ function route(){const h=decodeURIComponent(location.hash.replace(/^#/,'')); if(
 async function init(){DATA=await loadListings(); fillFilters(); const ids=idsFromUrl(); if(ids.length){selected=ids.filter(id=>DATA.some(x=>x.ID===id));} $('#contactBtn').href=(window.APP_CONFIG&&window.APP_CONFIG.CONTACT_URL)||'#'; document.querySelectorAll('.modeSwitch button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.modeSwitch button').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); mode=btn.dataset.mode; renderCatalog();})); ['#locationFilter','#typeFilter','#budgetFilter','#statusFilter','#sortSelect'].forEach(s=>$(s).addEventListener('change',renderCatalog)); $('#resetBtn').addEventListener('click',()=>{['#locationFilter','#typeFilter','#budgetFilter'].forEach(s=>$(s).value=''); $('#statusFilter').value='active'; $('#sortSelect').value='score'; renderCatalog();}); $('#createShortlistBtn').addEventListener('click',createShortlistLink); $('#compareBtn').addEventListener('click',goCompare); $('#clearCompareBtn').addEventListener('click',clearCompare); window.addEventListener('hashchange',route); window.onLanguageChange=()=>{I18N.translateStatic(); fillFilters(); route();}; route();}
 init().catch(e=>{app.innerHTML=`<div class="panel">Ошибка загрузки данных: ${escapeHtml(e.message)}</div>`;});
 
-/* v19 final UI polish overrides */
+/* v20 compact premium catalog polish overrides */
 function v19Stats(groups){
   const items=groups.flatMap(g=>g.items);
   const prices=items.map(x=>x.price).filter(x=>!isNaN(x));
   const roi=items.map(x=>x.modelROI).filter(x=>!isNaN(x));
-  const locations=new Set(items.map(x=>x.Location).filter(Boolean));
+  const stress=items.map(x=>x.conservativeROI).filter(x=>!isNaN(x));
+  const ready=items.filter(x=>String(x.Stage||'').toLowerCase().includes('готов')||String(x.Stage||'').toLowerCase().includes('ready')).length;
   return {
     projects: groups.length,
     minPrice: prices.length?Math.min(...prices):NaN,
+    maxPrice: prices.length?Math.max(...prices):NaN,
     maxRoi: roi.length?Math.max(...roi):NaN,
-    locations: locations.size
+    bestStress: stress.length?Math.max(...stress):NaN,
+    ready
   };
 }
 function v19StatBlock(groups){
@@ -429,7 +432,9 @@ function v19StatBlock(groups){
   return `<div class="premiumStats">
     <div class="premiumStat"><b>${s.projects}</b><span>${en?'projects':'проектов'}</span></div>
     <div class="premiumStat"><b>${money(s.minPrice)}</b><span>${en?'entry ticket':'порог входа'}</span></div>
-    <div class="premiumStat"><b>${percent(s.maxRoi)}</b><span>${en?'max checked ROI':'макс. наша оценка'}</span></div>
+    <div class="premiumStat"><b>${money(s.maxPrice)}</b><span>${en?'top ticket':'макс. вход'}</span></div>
+    <div class="premiumStat"><b>${percent(s.maxRoi)}</b><span>${en?'best checked ROI':'лучшая оценка'}</span></div>
+    <div class="premiumStat"><b>${percent(s.bestStress)}</b><span>${en?'best stress case':'лучший стресс'}</span></div>
   </div>`;
 }
 function v19ActionLine(item, checked){
@@ -469,8 +474,8 @@ function renderCatalog(){
   $('#resultCount').textContent=`${tr('objects')}: ${groups.length} ${tr('from')} ${allCount}`;
   if(!groups.length){ app.innerHTML=`<div class="panel premiumEmpty">${tr('nothingFound')}</div>`; renderCompareBar(); return; }
   const c=v17Copy();
-  app.innerHTML=`<section class="premiumIntro">
-      <div><span>${c.curated}</span><h2>${c.title}</h2><p>${c.subtitle}</p>${v19StatBlock(groups)}</div>
+  app.innerHTML=`<section class="premiumIntro premiumIntroCompact">
+      <div>${v19StatBlock(groups)}</div>
       <button class="premiumCta" onclick="createShortlistLink()">${c.request}</button>
     </section>
     <div class="premiumGrid">${groups.map((g,i)=>projectCard(g,{index:i})).join('')}</div>

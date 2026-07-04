@@ -49,7 +49,7 @@ function money(v){
 function percent(v){
   const n=pct(v);
   if(isNaN(n)) return '—';
-  const s=(n*100).toFixed(n*100<10?1:0);
+  const s=(n*100).toFixed(1);
   return ((window.I18N&&window.I18N.lang&&window.I18N.lang()==='en')?s:s.replace('.',','))+'%';
 }
 
