@@ -97,3 +97,10 @@ See `docs/PHOTO_STRUCTURE_V8.md`.
 ## v16 CDN-safe ROI display fix
 - Uses brand-new asset paths `assets/js/app.v16.js` and `assets/css/styles.v16.css` so GitHub Pages/CDN cannot serve old app.js/styles.css.
 - Keeps v15 ROI primary display: Checked ROI is the main client-facing number; Developer and Stress are secondary.
+
+
+## v18
+- Removed blurred/locked extra listings.
+- Catalog now shows all available project cards for internal client walkthroughs.
+- Personal shortlists remain available via shortlist selection/link flow.
+- New cache-safe assets: `assets/js/app.v18.js`, `assets/css/styles.v18.css`.
