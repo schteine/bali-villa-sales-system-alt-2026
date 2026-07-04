@@ -92,3 +92,8 @@ See `docs/PHOTO_STRUCTURE_V8.md`.
 - Moved Developer ROI and Stress ROI into secondary line.
 - Added explanatory ROI blocks in property detail view.
 - Bumped cache version to v15.
+
+
+## v16 CDN-safe ROI display fix
+- Uses brand-new asset paths `assets/js/app.v16.js` and `assets/css/styles.v16.css` so GitHub Pages/CDN cannot serve old app.js/styles.css.
+- Keeps v15 ROI primary display: Checked ROI is the main client-facing number; Developer and Stress are secondary.
