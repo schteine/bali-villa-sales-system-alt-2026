@@ -133,3 +133,18 @@ body.noScroll{overflow:hidden}
 #galleryLightbox{display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,.86);padding:32px}
 #galleryLightbox.open{display:flex}.lightboxBackdrop{position:absolute;inset:0}.lightboxImg{position:relative;z-index:2;max-width:min(1180px,92vw);max-height:86vh;object-fit:contain;border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,.45);background:#111}.lightboxClose{position:absolute;top:18px;right:22px;z-index:3;width:44px;height:44px;border:1px solid rgba(255,255,255,.35);border-radius:999px;background:rgba(0,0,0,.35);color:#fff;font-size:34px;line-height:1;cursor:pointer}.lightboxNav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:54px;height:54px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:#fff;font-size:42px;line-height:1;cursor:pointer}.lightboxPrev{left:24px}.lightboxNext{right:24px}.lightboxCounter{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:3;color:#fff;background:rgba(0,0,0,.42);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:7px 14px;font-weight:800;font-size:13px}
 @media(max-width:820px){#galleryLightbox{padding:14px}.lightboxImg{max-width:96vw;max-height:82vh}.lightboxNav{width:42px;height:42px;font-size:34px}.lightboxPrev{left:10px}.lightboxNext{right:10px}.lightboxClose{top:10px;right:10px}}
+
+/* v13 tourism assumptions */
+.marketAssumptions{margin:18px 0;padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--card)}
+.marketAssumptions h2{margin:0 0 6px;font-size:18px}
+.marketAssumptions p{margin:0 0 14px;color:var(--muted);font-size:13px}
+.marketGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.marketKpi{border:1px solid var(--line);border-radius:14px;background:var(--soft);padding:12px}
+.marketKpi b{display:block;font-size:19px;letter-spacing:-.02em}
+.marketKpi span{display:block;color:var(--muted);font-size:12px;margin-top:3px}.marketKpi em{font-style:normal;font-size:11px;color:var(--muted)}
+.marketRule{margin-top:12px;padding:12px 14px;border-radius:14px;background:rgba(226,177,88,.12);font-size:13px;color:var(--text)}
+
+
+/* v14 ROI confidence display */
+.roiDisclaimer{font-size:12px;line-height:1.35;color:var(--muted);margin-top:8px}
+.compactRoi .roiBox span{font-size:10.5px}

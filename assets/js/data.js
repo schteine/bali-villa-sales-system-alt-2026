@@ -57,9 +57,55 @@ function escapeHtml(s){
   return String(s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 }
 
+function stageConfidenceFactor(o){
+  const stage=String(o.Stage||'').toLowerCase();
+  const loc=String(o.Location||'').toLowerCase();
+  const source=String(o.ROISource||'').toLowerCase();
+  let f=0.90;
+  if(stage.includes('готов')||stage.includes('ready')) f=0.96;
+  else if(stage.includes('скоро')||stage.includes('q1')||stage.includes('q2')) f=0.92;
+  else if(stage.includes('стро')||stage.includes('construction')) f=0.88;
+  else if(stage.includes('off')||stage.includes('офф')) f=0.84;
+  if(/karangasem|virgin|bedugul|kedungu|tabanan|east/i.test(loc)) f-=0.05;
+  if(/actual|fact|факт|гарант|guarantee|гарантия/i.test(source)) f+=0.01;
+  return Math.max(0.78, Math.min(0.97, f));
+}
+
+function stressFactor(o){
+  const stage=String(o.Stage||'').toLowerCase();
+  const loc=String(o.Location||'').toLowerCase();
+  let f=0.78;
+  if(stage.includes('готов')||stage.includes('ready')) f=0.82;
+  else if(stage.includes('скоро')) f=0.78;
+  else if(stage.includes('стро')) f=0.74;
+  else if(stage.includes('off')||stage.includes('офф')) f=0.68;
+  if(/karangasem|virgin|bedugul|kedungu|tabanan|east/i.test(loc)) f-=0.04;
+  return Math.max(0.62, Math.min(0.84, f));
+}
+
 function normalizeListing(o){
   const price=num(o.PriceUSD);
   const build=num(o.BuildSqm);
+  const adrBase=num(o.ADRBase);
+  const occupancyBase=pct(o.OccupancyBase);
+  const expensesRatio=pct(o.ExpensesRatio);
+  const developerROI=pct(o.DeveloperROI);
+  const csvModelROI=pct(o.ModelROI);
+  const csvStressROI=pct(o.ConservativeROI);
+
+  const rawModelROI=(!isNaN(price)&&price>0&&!isNaN(adrBase)&&!isNaN(occupancyBase)&&!isNaN(expensesRatio))
+    ? (adrBase*occupancyBase*365*(1-expensesRatio)/price)
+    : csvModelROI;
+
+  const confidence=stageConfidenceFactor(o);
+  let checkedROI=rawModelROI;
+  if(isNaN(checkedROI) && !isNaN(developerROI)) checkedROI=developerROI*confidence;
+  if(!isNaN(developerROI) && !isNaN(checkedROI)) checkedROI=Math.min(checkedROI, developerROI*confidence);
+  if(isNaN(checkedROI)) checkedROI=csvModelROI;
+
+  let stressROI=(!isNaN(checkedROI)) ? checkedROI*stressFactor(o) : csvStressROI;
+  if(!isNaN(csvStressROI) && !isNaN(stressROI)) stressROI=Math.min(stressROI, csvStressROI);
+
   return {
     ...o,
     price,
@@ -67,12 +113,13 @@ function normalizeListing(o){
     land:num(o.LandSqm),
     bedrooms:num(o.Bedrooms),
     pricePerSqm:num(o.PricePerSqm)||(!isNaN(price)&&!isNaN(build)&&build?price/build:NaN),
-    developerROI:pct(o.DeveloperROI),
-    modelROI:pct(o.ModelROI),
-    conservativeROI:pct(o.ConservativeROI),
-    adrBase:num(o.ADRBase),
-    occupancyBase:pct(o.OccupancyBase),
-    expensesRatio:pct(o.ExpensesRatio),
+    developerROI,
+    rawModelROI,
+    modelROI:checkedROI,
+    conservativeROI:stressROI,
+    adrBase,
+    occupancyBase,
+    expensesRatio,
     legalScore:num(o.LegalScore),
     locationLiquidityScore:num(o.LocationLiquidityScore),
     leaseExtensionScore:num(o.LeaseExtensionScore),

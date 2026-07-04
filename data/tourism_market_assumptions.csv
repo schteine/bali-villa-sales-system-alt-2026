@@ -1,0 +1,9 @@
+﻿Metric,Period,Value,ChangeOrNote,Source
+Foreign visitors to Bali,2025,"6,948,754",+9.72% YoY,BPS Bali annual foreign visitors CSV
+Foreign visitors to Indonesia,2025,"15,386,646",+10.80% YoY,BPS Bali annual foreign visitors CSV
+Bali share of Indonesia foreign arrivals,2025,45.16%,Flat vs 2024,Calculated from BPS Bali annual foreign visitors CSV
+Domestic visitors to Bali,2025,"9,612,511",-5.02% YoY,Bali Government Tourism Office / BPS table
+Foreign arrivals Jan-May,2026,"2,598,143",-1.77% vs Jan-May 2025,BPS Bali monthly foreign visitors by gate
+Average LOS foreign hotel guests,Jan-May 2026,3.13 nights,All classified hotels,BPS Bali LOS foreign guests CSV
+Average LOS domestic hotel guests,Jan-May 2026,2.42 nights,All classified hotels,BPS Bali LOS domestic guests CSV
+Model implication,2026 base,No broad occupancy uplift,Use location-specific assumptions,Internal model rule

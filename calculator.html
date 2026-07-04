@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bali Villa Finance Model</title>
-  <link rel="stylesheet" href="assets/css/styles.css?v=12" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=14" />
 </head>
 <body>
   <header class="topbar no-print">
@@ -83,6 +83,20 @@
       </form>
     </section>
 
+
+
+    <section class="marketAssumptions no-print">
+      <h2>Market assumptions · BPS Bali</h2>
+      <p>Официальная статистика используется как фон для occupancy/ADR, но не раздаёт одинаковый ROI всем объектам.</p>
+      <div class="marketGrid">
+        <div class="marketKpi"><b>6.95M</b><span>foreign visitors to Bali 2025</span><em>+9.72% YoY</em></div>
+        <div class="marketKpi"><b>9.61M</b><span>domestic visitors to Bali 2025</span><em>-5.02% YoY</em></div>
+        <div class="marketKpi"><b>-1.77%</b><span>foreign arrivals Jan–May 2026</span><em>vs Jan–May 2025</em></div>
+        <div class="marketKpi"><b>3.13 / 2.42</b><span>LOS foreign / domestic</span><em>Jan–May 2026, nights</em></div>
+      </div>
+      <div class="marketRule"><b>Model rule:</b> Developer ROI = заявка застройщика. Checked ROI = наша risk-adjusted оценка: raw ADR/OCC model ограничивается сверху относительно сценария застройщика и корректируется на стадию, локацию и рынок. Stress ROI = дополнительный haircut для слабого рынка.</div>
+    </section>
+
     <section class="forecastShell">
       <div class="forecastTitle" data-i18n="investmentForecast">Investment forecast</div>
       <div id="paymentCards" class="paymentCards"></div>
@@ -134,7 +148,7 @@
     </section>
   </main>
 
-  <script src="assets/js/i18n.js?v=12"></script>
-  <script src="assets/js/finance.js?v=12"></script>
+  <script src="assets/js/i18n.js?v=14"></script>
+  <script src="assets/js/finance.js?v=14"></script>
 </body>
 </html>

@@ -68,3 +68,19 @@ See `docs/PHOTO_STRUCTURE_V8.md`.
 ## v12
 - Fixed detail gallery interactions with delegated JS, clickable thumbnails, arrow navigation, keyboard navigation, and fullscreen lightbox.
 - Bumped asset cache version to v12.
+
+## v13 — ROI separation and tourism assumptions
+
+- Recalculated `ModelROI` separately from `DeveloperROI` using: `ADR × Occupancy × 365 × (1 - ExpensesRatio) / PriceUSD`.
+- Recalculated `ConservativeROI` as stress scenario: ADR -10%, occupancy -10 percentage points, expenses +5 percentage points, plus project-stage risk.
+- Added `data/tourism_market_assumptions.csv` based on BPS Bali CSV exports.
+- Added `docs/TOURISM_MARKET_ASSUMPTIONS_V13.md` with model rules.
+- Added BPS market assumptions panel to finance model.
+- Updated cache version to `v=13`.
+
+
+## v14 — ROI conservative display
+- Developer ROI remains the developer case.
+- Checked ROI is risk-adjusted and capped below the developer case in most situations.
+- Stress ROI is an additional downside haircut.
+- Raw ADR/OCC math is kept internally as `rawModelROI`, but the client-facing value is `Checked`.
