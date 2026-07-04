@@ -84,3 +84,11 @@ See `docs/PHOTO_STRUCTURE_V8.md`.
 - Checked ROI is risk-adjusted and capped below the developer case in most situations.
 - Stress ROI is an additional downside haircut.
 - Raw ADR/OCC math is kept internally as `rawModelROI`, but the client-facing value is `Checked`.
+
+
+## V15 — ROI presentation
+
+- Made Checked ROI the primary visible metric in catalog cards.
+- Moved Developer ROI and Stress ROI into secondary line.
+- Added explanatory ROI blocks in property detail view.
+- Bumped cache version to v15.

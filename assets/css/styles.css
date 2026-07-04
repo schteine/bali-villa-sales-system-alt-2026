@@ -148,3 +148,20 @@ body.noScroll{overflow:hidden}
 /* v14 ROI confidence display */
 .roiDisclaimer{font-size:12px;line-height:1.35;color:var(--muted);margin-top:8px}
 .compactRoi .roiBox span{font-size:10.5px}
+
+
+/* v15 ROI presentation: make our checked estimate primary */
+.checkedRoiCard{border:1px solid var(--line);background:linear-gradient(180deg,#fff,#faf9f6);border-radius:12px;padding:8px 9px;display:flex;flex-direction:column;gap:5px}
+.checkedRoiMain{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.checkedRoiMain span{font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.checkedRoiMain b{font-size:22px;line-height:1;font-weight:950;letter-spacing:-.04em;color:var(--ink)}
+.checkedRoiSub{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);font-weight:800;border-top:1px solid var(--line);padding-top:5px}
+.projectCard .checkedRoiCard{margin:1px 0 0}
+.roiExplainGrid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;margin-top:12px}
+.roiExplain{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:10px 11px;display:flex;flex-direction:column;gap:4px;min-height:104px}
+.roiExplain.checked{background:#fff;border-color:#d7d2c7;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+.roiExplain.stress{background:#fff7f0}
+.roiExplain span{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:900}
+.roiExplain b{font-size:25px;line-height:1;font-weight:950;letter-spacing:-.04em}
+.roiExplain em{font-style:normal;font-size:11.5px;line-height:1.25;color:var(--muted);font-weight:650}
+@media(max-width:720px){.roiExplainGrid{grid-template-columns:1fr}.roiExplain{min-height:auto}.checkedRoiMain b{font-size:20px}}
